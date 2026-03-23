@@ -178,7 +178,7 @@ export default function CreateListingPage() {
                     </Label>
                     <Input
                       id="title"
-                      placeholder="e.g. Luxury Villa with Pool in Beverly Hills"
+                      placeholder="e.g. 3 BHK Flat in Bandra, Mumbai"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       required
@@ -212,11 +212,12 @@ export default function CreateListingPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="price">
-                        Price (USD) <span className="text-destructive">*</span>
+                        Price (INR ₹){" "}
+                        <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="price"
-                        placeholder="e.g. 450000"
+                        placeholder="e.g. 5000000"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         required
@@ -232,7 +233,7 @@ export default function CreateListingPage() {
                     </Label>
                     <Input
                       id="location"
-                      placeholder="e.g. 123 Sunset Blvd, Los Angeles, CA 90028"
+                      placeholder="e.g. Bandra West, Mumbai, Maharashtra"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       required

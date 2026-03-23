@@ -27,9 +27,10 @@ import { StorageClient } from "../utils/StorageClient";
 
 function formatPrice(price: bigint): string {
   const num = Number(price);
-  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(2)}M`;
-  if (num >= 1_000) return `$${(num / 1_000).toFixed(0)},000`;
-  return `$${num.toLocaleString()}`;
+  if (num >= 10_000_000) return `\u20B9${(num / 10_000_000).toFixed(2)} Crore`;
+  if (num >= 100_000) return `\u20B9${(num / 100_000).toFixed(2)} Lakh`;
+  if (num >= 1_000) return `\u20B9${(num / 1_000).toFixed(0)},000`;
+  return `\u20B9${num.toLocaleString("en-IN")}`;
 }
 
 function MediaItem({ mediaId, alt }: { mediaId: string; alt: string }) {

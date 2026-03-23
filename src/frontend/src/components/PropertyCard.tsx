@@ -19,9 +19,10 @@ const PLACEHOLDER_IMAGES: Record<string, string> = {
 
 function formatPrice(price: bigint): string {
   const num = Number(price);
-  if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
-  if (num >= 1_000) return `$${(num / 1_000).toFixed(0)}K`;
-  return `$${num.toLocaleString()}`;
+  if (num >= 10_000_000) return `\u20B9${(num / 10_000_000).toFixed(2)} Cr`;
+  if (num >= 100_000) return `\u20B9${(num / 100_000).toFixed(2)} L`;
+  if (num >= 1_000) return `\u20B9${(num / 1_000).toFixed(0)}K`;
+  return `\u20B9${num.toLocaleString("en-IN")}`;
 }
 
 function getPlaceholderImage(propertyType: string): string {
