@@ -5,8 +5,8 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  redirect,
 } from "@tanstack/react-router";
+import OmniDimWidget from "./components/OmniDimWidget";
 import CreateListingPage from "./pages/CreateListingPage";
 import DashboardPage from "./pages/DashboardPage";
 import HomePage from "./pages/HomePage";
@@ -18,6 +18,7 @@ const rootRoute = createRootRoute({
     <>
       <Outlet />
       <Toaster richColors position="top-right" />
+      <OmniDimWidget />
     </>
   ),
 });
