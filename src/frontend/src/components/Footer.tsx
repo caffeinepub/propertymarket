@@ -1,4 +1,4 @@
-import { Home } from "lucide-react";
+import { Home, Mail, Phone, Youtube } from "lucide-react";
 import { SiFacebook, SiInstagram, SiLinkedin, SiX } from "react-icons/si";
 
 const socialLinks = [
@@ -88,25 +88,41 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Support */}
+          {/* Contact */}
           <div>
             <h4 className="font-semibold text-sm uppercase tracking-widest text-white/50 mb-4">
-              Support
+              Contact Us
             </h4>
-            <ul className="space-y-2 text-sm text-white/70">
-              {[
-                "Help Center",
-                "Privacy Policy",
-                "Terms of Service",
-                "Cookie Policy",
-                "Sitemap",
-              ].map((item) => (
-                <li key={item}>
-                  <a href="/" className="hover:text-white transition-colors">
-                    {item}
-                  </a>
-                </li>
-              ))}
+            <ul className="space-y-3 text-sm text-white/70">
+              <li>
+                <a
+                  href="tel:+917062824444"
+                  className="flex items-center gap-2 hover:text-white transition-colors"
+                >
+                  <Phone className="w-4 h-4 shrink-0 text-white/50" />
+                  +91 7062824444
+                </a>
+              </li>
+              <li>
+                <a
+                  href="mailto:prembhati04444@gmail.com"
+                  className="flex items-center gap-2 hover:text-white transition-colors"
+                >
+                  <Mail className="w-4 h-4 shrink-0 text-white/50" />
+                  prembhati04444@gmail.com
+                </a>
+              </li>
+              <li>
+                <a
+                  href="https://youtube.com/channel/UCfcmjN4UqPsM7A0IzTX8OYA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:text-white transition-colors"
+                >
+                  <Youtube className="w-4 h-4 shrink-0 text-white/50" />
+                  YouTube Channel
+                </a>
+              </li>
             </ul>
           </div>
         </div>

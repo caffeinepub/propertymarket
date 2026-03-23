@@ -12,17 +12,62 @@ import {
   Building2,
   IndianRupee,
   LayoutGrid,
+  Mail,
+  Phone,
   Search,
   ShieldCheck,
   Users,
+  Youtube,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
 import { useGetAllListings, useGetGlobalStats } from "../hooks/useQueries";
+
+function AnimatedCounter({ value }: { value: number | undefined }) {
+  const [display, setDisplay] = useState(0);
+  const prevRef = useRef(0);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (value === undefined) return;
+    const start = prevRef.current;
+    const end = value;
+    if (start === end) return;
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    const duration = 1000;
+    const stepMs = 50;
+    const steps = duration / stepMs;
+    const increment = (end - start) / steps;
+    let current = start;
+
+    intervalRef.current = setInterval(() => {
+      current += increment;
+      if (
+        (increment > 0 && current >= end) ||
+        (increment < 0 && current <= end)
+      ) {
+        setDisplay(end);
+        prevRef.current = end;
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      } else {
+        setDisplay(Math.floor(current));
+      }
+    }, stepMs);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [value]);
+
+  if (value === undefined) return <span>...</span>;
+  return <span>{display.toString()}</span>;
+}
 
 const FEATURES = [
   {
@@ -51,12 +96,18 @@ const TEAM = [
     role: "Owner & Visionary",
     bio: "As the Owner of Property Market, Prem Bhati leads the strategic vision and growth of the platform. With a deep focus on market integrity, Prem ensures that every user has access to real property prices and a trustworthy marketplace experience.",
     initials: "PB",
+    email: "prembhati04444@gmail.com",
+    youtube: "https://youtube.com/channel/UCfcmjN4UqPsM7A0IzTX8OYA",
+    phone: "+91 7062824444",
   },
   {
     name: "Ravina Bhatti",
     role: "Lead App Developer",
     bio: "Ravina Bhatti drives the technical excellence behind Property Market, building a seamless and reliable platform that connects buyers and sellers with confidence.",
     initials: "RB",
+    email: null,
+    youtube: null,
+    phone: null,
   },
 ];
 
@@ -190,23 +241,33 @@ export default function HomePage() {
         <section className="bg-primary text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
             <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/20 text-center">
-              <div className="px-4 py-1">
+              <div className="px-4 py-2">
                 <div className="flex items-center justify-center gap-2">
-                  <Users className="w-5 h-5 text-white/80" />
-                  <span className="font-bold text-xl">
-                    {stats ? Number(stats.totalUsers).toString() : "..."}
-                  </span>
+                  <Users className="w-5 h-5 text-white/80 shrink-0" />
+                  <p className="text-sm text-white leading-snug">
+                    अभी तक{" "}
+                    <span className="font-bold text-xl align-middle">
+                      <AnimatedCounter
+                        value={stats ? Number(stats.totalUsers) : undefined}
+                      />
+                    </span>{" "}
+                    यूज़र्स ने register किया है।
+                  </p>
                 </div>
-                <p className="text-xs text-white/70 mt-0.5">Registered Users</p>
               </div>
-              <div className="px-4 py-1">
+              <div className="px-4 py-2">
                 <div className="flex items-center justify-center gap-2">
-                  <Building2 className="w-5 h-5 text-white/80" />
-                  <span className="font-bold text-xl">
-                    {stats ? Number(stats.totalListings).toString() : "..."}
-                  </span>
+                  <Building2 className="w-5 h-5 text-white/80 shrink-0" />
+                  <p className="text-sm text-white leading-snug">
+                    अभी तक{" "}
+                    <span className="font-bold text-xl align-middle">
+                      <AnimatedCounter
+                        value={stats ? Number(stats.totalListings) : undefined}
+                      />
+                    </span>{" "}
+                    प्रॉपर्टी पोस्ट हुई हैं।
+                  </p>
                 </div>
-                <p className="text-xs text-white/70 mt-0.5">Total Listings</p>
               </div>
               <div className="px-4 py-1">
                 <div className="flex items-center justify-center gap-2">
@@ -449,6 +510,39 @@ export default function HomePage() {
                   <p className="text-muted-foreground text-sm leading-relaxed">
                     {member.bio}
                   </p>
+                  {(member.email || member.youtube || member.phone) && (
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      {member.phone && (
+                        <a
+                          href={`tel:${member.phone.replace(/\s/g, "")}`}
+                          className="flex items-center gap-1.5 text-primary text-sm hover:underline"
+                        >
+                          <Phone className="w-4 h-4 shrink-0" />
+                          {member.phone}
+                        </a>
+                      )}
+                      {member.email && (
+                        <a
+                          href={`mailto:${member.email}`}
+                          className="flex items-center gap-1.5 text-primary text-sm hover:underline"
+                        >
+                          <Mail className="w-4 h-4 shrink-0" />
+                          {member.email}
+                        </a>
+                      )}
+                      {member.youtube && (
+                        <a
+                          href={member.youtube}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 text-primary text-sm hover:underline"
+                        >
+                          <Youtube className="w-4 h-4 shrink-0" />
+                          YouTube Channel
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>
