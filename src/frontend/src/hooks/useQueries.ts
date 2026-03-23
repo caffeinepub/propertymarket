@@ -191,3 +191,43 @@ export function useGetInquiriesForListing(listingId: bigint) {
     enabled: !!actor && !isFetching,
   });
 }
+
+export function useGetSavedListings() {
+  const { actor, isFetching } = useActor();
+  return useQuery<PropertyListing[]>({
+    queryKey: ["savedListings"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return (actor as any).getSavedListings();
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSaveListing() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (listingId: bigint) => {
+      if (!actor) throw new Error("Not authenticated");
+      return (actor as any).saveListing(listingId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedListings"] });
+    },
+  });
+}
+
+export function useUnsaveListing() {
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (listingId: bigint) => {
+      if (!actor) throw new Error("Not authenticated");
+      return (actor as any).unsaveListing(listingId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["savedListings"] });
+    },
+  });
+}

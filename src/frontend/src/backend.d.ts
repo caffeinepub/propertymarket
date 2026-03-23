@@ -61,11 +61,15 @@ export interface backendInterface {
     getInquiriesForListing(listingId: bigint): Promise<Array<Inquiry>>;
     getListing(id: bigint): Promise<PropertyListing>;
     getMyListings(): Promise<Array<PropertyListing>>;
+    getSavedListings(): Promise<Array<PropertyListing>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    isListingSaved(listingId: bigint): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    saveListing(listingId: bigint): Promise<void>;
     submitInquiry(listingId: bigint, buyerName: string, buyerPhone: string, message: string): Promise<bigint>;
     toggleAdActiveState(adId: bigint): Promise<void>;
+    unsaveListing(listingId: bigint): Promise<void>;
     updateAd(adId: bigint, title: string, imageUrl: string, linkUrl: string): Promise<void>;
     updateListing(listingId: bigint, title: string, description: string, price: bigint, propertyType: string, location: string, mediaIds: Array<string>): Promise<void>;
 }

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { HttpAgent } from "@icp-sdk/core/agent";
 import { Link } from "@tanstack/react-router";
-import { Hash, MapPin, MessageCircle } from "lucide-react";
+import { Hash, Heart, MapPin, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PropertyListing } from "../backend";
 import { loadConfig } from "../config";
@@ -72,11 +72,18 @@ function MediaThumbnail({
 }
 
 interface PropertyCardProps {
+  isSaved?: boolean;
+  onSaveToggle?: (id: bigint) => void;
   listing: PropertyListing;
   index: number;
 }
 
-export default function PropertyCard({ listing, index }: PropertyCardProps) {
+export default function PropertyCard({
+  listing,
+  index,
+  isSaved,
+  onSaveToggle,
+}: PropertyCardProps) {
   const imageMediaId = listing.mediaIds.find((id) => id.startsWith("image:"));
   const hasMedia = !!imageMediaId;
 
@@ -119,6 +126,21 @@ export default function PropertyCard({ listing, index }: PropertyCardProps) {
           <Hash className="w-3 h-3" />
           {listing.id.toString()}
         </div>
+        <button
+          type="button"
+          className="absolute bottom-3 right-3 rounded-full bg-white/80 backdrop-blur p-1.5 shadow hover:scale-110 transition-transform"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (onSaveToggle) onSaveToggle(listing.id);
+          }}
+          data-ocid={`listing.toggle.${index}`}
+          aria-label={isSaved ? "Unsave property" : "Save property"}
+        >
+          <Heart
+            className={`w-4 h-4 transition-colors ${isSaved ? "fill-red-500 text-red-500" : "text-gray-500"}`}
+          />
+        </button>
       </div>
 
       <CardContent className="p-4">

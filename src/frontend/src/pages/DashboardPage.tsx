@@ -35,6 +35,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
   Edit,
+  Heart,
   LayoutDashboard,
   Loader2,
   LogOut,
@@ -57,6 +58,8 @@ import {
   useGetCallerUserProfile,
   useGetInquiriesForListing,
   useGetMyListings,
+  useGetSavedListings,
+  useUnsaveListing,
   useUpdateListing,
 } from "../hooks/useQueries";
 
@@ -358,6 +361,9 @@ export default function DashboardPage() {
   const { data: profile } = useGetCallerUserProfile();
   const { data: listings, isLoading } = useGetMyListings();
   const deleteListing = useDeleteListing();
+  const { data: savedListings, isLoading: savedLoading } =
+    useGetSavedListings();
+  const unsaveListing = useUnsaveListing();
 
   const [deletingId, setDeletingId] = useState<bigint | null>(null);
   const [editingListing, setEditingListing] = useState<PropertyListing | null>(
@@ -477,6 +483,13 @@ export default function DashboardPage() {
               <TabsTrigger value="inquiries" data-ocid="dashboard.tab">
                 <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
                 Inquiries
+              </TabsTrigger>
+              <TabsTrigger value="saved" data-ocid="dashboard.tab">
+                <Heart className="w-3.5 h-3.5 mr-1.5" />
+                Saved{" "}
+                {savedListings && savedListings.length > 0
+                  ? `(${savedListings.length})`
+                  : ""}
               </TabsTrigger>
             </TabsList>
 
@@ -618,6 +631,113 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <InquiriesTab listings={listings ?? []} />
+              )}
+            </TabsContent>
+
+            {/* Saved Tab */}
+            <TabsContent value="saved">
+              {savedLoading ? (
+                <div className="space-y-4" data-ocid="saved.loading_state">
+                  {(["a", "b", "c"] as const).map((k) => (
+                    <Skeleton key={k} className="h-28 rounded-xl" />
+                  ))}
+                </div>
+              ) : !savedListings || savedListings.length === 0 ? (
+                <div
+                  className="text-center py-20 bg-card border border-border rounded-2xl"
+                  data-ocid="saved.empty_state"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
+                    <Heart className="w-8 h-8 text-red-300" />
+                  </div>
+                  <p className="text-lg font-medium text-foreground mb-2">
+                    Koi saved property nahi
+                  </p>
+                  <p className="text-muted-foreground text-sm mb-6">
+                    Properties browse karein aur dil pe liye hue listings save
+                    karein.
+                  </p>
+                  <Link to="/">
+                    <Button
+                      className="bg-primary text-white"
+                      data-ocid="saved.primary_button"
+                    >
+                      Browse Properties
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4" data-ocid="saved.list">
+                  {savedListings.map((listing, i) => (
+                    <motion.div
+                      key={listing.id.toString()}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      data-ocid={`saved.item.${i + 1}`}
+                    >
+                      <Card className="border border-border bg-card hover:shadow-card transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Badge
+                                  className="text-xs text-white"
+                                  style={{
+                                    backgroundColor:
+                                      listing.propertyType.toLowerCase() ===
+                                      "plot"
+                                        ? "#e53935"
+                                        : "#1E88E5",
+                                  }}
+                                >
+                                  {listing.propertyType}
+                                </Badge>
+                                <h3 className="font-semibold text-foreground text-sm truncate">
+                                  {listing.title}
+                                </h3>
+                              </div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+                                <MapPin className="w-3 h-3" />
+                                <span>{listing.location}</span>
+                              </div>
+                              <p className="text-base font-bold text-foreground">
+                                {formatPrice(listing.price)}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <Link
+                                to="/property/$id"
+                                params={{ id: listing.id.toString() }}
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-primary border-primary/30 hover:bg-primary hover:text-white"
+                                >
+                                  View
+                                </Button>
+                              </Link>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-500 border-red-300 hover:bg-red-50"
+                                onClick={async () => {
+                                  await unsaveListing.mutateAsync(listing.id);
+                                  toast.success("Saved se hataya");
+                                }}
+                                data-ocid={`saved.delete_button.${i + 1}`}
+                              >
+                                <Heart className="w-3.5 h-3.5 fill-red-400 mr-1" />
+                                Unsave
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
               )}
             </TabsContent>
           </Tabs>

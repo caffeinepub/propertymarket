@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,22 +13,28 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
+  CheckCircle2,
   ChevronLeft,
   Home,
-  Image,
   Loader2,
+  Star,
   Upload,
   Video,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useCreateListing, useGetCallerUserProfile } from "../hooks/useQueries";
 import { useStorageUpload } from "../hooks/useStorageUpload";
+
+interface MediaFile {
+  file: File;
+  previewUrl: string;
+}
 
 export default function CreateListingPage() {
   const router = useRouter();
@@ -45,10 +50,22 @@ export default function CreateListingPage() {
   const [price, setPrice] = useState("");
   const [propertyType, setPropertyType] = useState("");
   const [location, setLocation] = useState("");
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
+  const [coverIndex, setCoverIndex] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaFilesRef = useRef(mediaFiles);
+  mediaFilesRef.current = mediaFiles;
+
+  // Cleanup object URLs on unmount only; uses ref to avoid stale closure
+  useEffect(() => {
+    return () => {
+      for (const m of mediaFilesRef.current) {
+        URL.revokeObjectURL(m.previewUrl);
+      }
+    };
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -72,11 +89,33 @@ export default function CreateListingPage() {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    setMediaFiles((prev) => [...prev, ...files]);
+    const newItems: MediaFile[] = files.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setMediaFiles((prev) => {
+      const updated = [...prev, ...newItems];
+      return updated;
+    });
+    // Auto-set cover to first item if none selected yet
+    if (mediaFiles.length === 0 && newItems.length > 0) {
+      setCoverIndex(0);
+    }
+    // reset input so same file can be re-selected
+    e.target.value = "";
   };
 
   const removeFile = (index: number) => {
-    setMediaFiles((prev) => prev.filter((_, i) => i !== index));
+    setMediaFiles((prev) => {
+      const updated = prev.filter((_, i) => i !== index);
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return updated;
+    });
+    if (coverIndex >= index && coverIndex > 0) {
+      setCoverIndex((c) => c - 1);
+    } else if (coverIndex === index) {
+      setCoverIndex(0);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -93,10 +132,14 @@ export default function CreateListingPage() {
     }
     setIsSubmitting(true);
     try {
-      // Upload media files
       let mediaIds: string[] = [];
       if (mediaFiles.length > 0) {
-        const uploaded = await uploadFiles(mediaFiles);
+        // Reorder so cover is first
+        const orderedFiles = [
+          mediaFiles[coverIndex],
+          ...mediaFiles.filter((_, i) => i !== coverIndex),
+        ].map((m) => m.file);
+        const uploaded = await uploadFiles(orderedFiles);
         mediaIds = uploaded.map((m) => m.mediaId);
       }
 
@@ -262,14 +305,23 @@ export default function CreateListingPage() {
               <Card className="border border-border">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base font-semibold">
-                    Photos & Videos
+                    Photos &amp; Videos
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Drop zone */}
                   <div
-                    className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors"
+                    tabIndex={0}
+                    role="button"
+                    className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer"
                     data-ocid="create.dropzone"
+                    onClick={() => fileInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
                   >
                     <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
                     <p className="text-sm font-medium text-foreground">
@@ -303,37 +355,117 @@ export default function CreateListingPage() {
                     />
                   </div>
 
-                  {/* File list */}
+                  {/* Cover selector gallery */}
                   {mediaFiles.length > 0 && (
-                    <div className="space-y-2">
-                      {mediaFiles.map((file, i) => (
-                        <div
-                          key={`${file.name}-${i}`}
-                          className="flex items-center gap-3 p-3 bg-muted rounded-lg text-sm"
-                        >
-                          {file.type.startsWith("video/") ? (
-                            <Video className="w-4 h-4 text-primary shrink-0" />
-                          ) : (
-                            <Image className="w-4 h-4 text-primary shrink-0" />
-                          )}
-                          <span className="flex-1 truncate text-foreground">
-                            {file.name}
-                          </span>
-                          <Badge
-                            variant="secondary"
-                            className="text-xs shrink-0"
-                          >
-                            {(file.size / 1024 / 1024).toFixed(1)} MB
-                          </Badge>
-                          <button
-                            type="button"
-                            onClick={() => removeFile(i)}
-                            className="text-muted-foreground hover:text-destructive transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Star className="w-4 h-4 text-amber-500" />
+                        <p className="text-sm font-medium text-foreground">
+                          Cover Image Select karo
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          (Jo image/video cover hogi woh listing mein sabse
+                          pehle dikhegi)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                        {mediaFiles.map((media, i) => {
+                          const isVideo = media.file.type.startsWith("video/");
+                          const isCover = i === coverIndex;
+                          return (
+                            <div
+                              key={`${media.file.name}-${i}`}
+                              tabIndex={0}
+                              role="button"
+                              className="relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200"
+                              style={{
+                                borderColor: isCover
+                                  ? "hsl(var(--primary))"
+                                  : "transparent",
+                                boxShadow: isCover
+                                  ? "0 0 0 2px hsl(var(--primary)/0.3)"
+                                  : "none",
+                              }}
+                              onClick={() => setCoverIndex(i)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setCoverIndex(i);
+                                }
+                              }}
+                            >
+                              {/* Thumbnail */}
+                              <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
+                                {isVideo ? (
+                                  <video
+                                    src={media.previewUrl}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                  />
+                                ) : (
+                                  <img
+                                    src={media.previewUrl}
+                                    alt={media.file.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                )}
+                              </div>
+
+                              {/* Cover badge */}
+                              {isCover && (
+                                <div className="absolute top-1 left-1">
+                                  <span className="inline-flex items-center gap-0.5 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                    <CheckCircle2 className="w-2.5 h-2.5" />
+                                    Cover
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Video indicator */}
+                              {isVideo && (
+                                <div className="absolute bottom-1 right-1">
+                                  <span className="inline-flex items-center gap-0.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                    <Video className="w-2.5 h-2.5" />
+                                    Video
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Hover overlay with select hint */}
+                              {!isCover && (
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <span className="text-white text-[10px] font-semibold bg-black/50 px-2 py-1 rounded-full">
+                                    Cover banao
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Remove button */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeFile(i);
+                                }}
+                                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-destructive text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <p className="text-xs text-muted-foreground">
+                        {mediaFiles.length} file
+                        {mediaFiles.length > 1 ? "s" : ""} selected &bull;
+                        Cover:{" "}
+                        <span className="font-medium text-foreground">
+                          {mediaFiles[coverIndex]?.file.name ?? "None"}
+                        </span>
+                      </p>
                     </div>
                   )}
 

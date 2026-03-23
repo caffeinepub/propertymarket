@@ -21,10 +21,18 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { useGetAllListings, useGetGlobalStats } from "../hooks/useQueries";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useGetAllListings,
+  useGetGlobalStats,
+  useGetSavedListings,
+  useSaveListing,
+  useUnsaveListing,
+} from "../hooks/useQueries";
 
 function AnimatedCounter({ value }: { value: number | undefined }) {
   const [display, setDisplay] = useState(0);
@@ -152,6 +160,26 @@ export default function HomePage() {
   const searchSectionRef = useRef<HTMLDivElement>(null);
 
   const { data: listings, isLoading } = useGetAllListings();
+  const { data: savedListings } = useGetSavedListings();
+  const saveListing = useSaveListing();
+  const unsaveListing = useUnsaveListing();
+  const { identity } = useInternetIdentity();
+  const savedIds = new Set((savedListings ?? []).map((l) => l.id.toString()));
+
+  const handleSaveToggle = async (listingId: bigint) => {
+    if (!identity) {
+      toast.error("Save karne ke liye Sign In karo");
+      return;
+    }
+    const isSaved = savedIds.has(listingId.toString());
+    if (isSaved) {
+      await unsaveListing.mutateAsync(listingId);
+      toast.success("Saved se hataya");
+    } else {
+      await saveListing.mutateAsync(listingId);
+      toast.success("Property save ho gayi!");
+    }
+  };
   const { data: stats } = useGetGlobalStats();
 
   const filteredListings = (listings ?? []).filter((l) => {
@@ -461,7 +489,12 @@ export default function HomePage() {
                     }}
                     transition={{ duration: 0.4 }}
                   >
-                    <PropertyCard listing={listing} index={i + 1} />
+                    <PropertyCard
+                      listing={listing}
+                      index={i + 1}
+                      isSaved={savedIds.has(listing.id.toString())}
+                      onSaveToggle={handleSaveToggle}
+                    />
                   </motion.div>
                 ))}
               </motion.div>

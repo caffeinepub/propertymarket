@@ -11,6 +11,7 @@ import { useParams } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import {
   ChevronLeft,
+  Heart,
   MapPin,
   MessageCircle,
   Phone,
@@ -24,7 +25,14 @@ import { toast } from "sonner";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { loadConfig } from "../config";
-import { useGetListing, useSubmitInquiry } from "../hooks/useQueries";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useGetListing,
+  useGetSavedListings,
+  useSaveListing,
+  useSubmitInquiry,
+  useUnsaveListing,
+} from "../hooks/useQueries";
 import { parseMediaId } from "../hooks/useStorageUpload";
 import { StorageClient } from "../utils/StorageClient";
 
@@ -279,6 +287,27 @@ export default function PropertyDetailPage() {
   const { id } = useParams({ from: "/property/$id" });
   const listingId = BigInt(id);
   const { data: listing, isLoading } = useGetListing(listingId);
+  const { data: savedListings } = useGetSavedListings();
+  const saveListing = useSaveListing();
+  const unsaveListing = useUnsaveListing();
+  const { identity } = useInternetIdentity();
+  const savedIds = new Set((savedListings ?? []).map((l) => l.id.toString()));
+  const isThisSaved = listing ? savedIds.has(listing.id.toString()) : false;
+
+  const handleSaveToggle = async () => {
+    if (!identity) {
+      toast.error("Save karne ke liye Sign In karo");
+      return;
+    }
+    if (!listing) return;
+    if (isThisSaved) {
+      await unsaveListing.mutateAsync(listing.id);
+      toast.success("Saved se hataya");
+    } else {
+      await saveListing.mutateAsync(listing.id);
+      toast.success("Property save ho gayi!");
+    }
+  };
   const [chatOpen, setChatOpen] = useState(false);
 
   if (isLoading) {
@@ -447,6 +476,17 @@ export default function PropertyDetailPage() {
                   </Button>
                 </a>
 
+                <Button
+                  variant="outline"
+                  className={`w-full ${isThisSaved ? "border-red-400 text-red-500 hover:bg-red-50" : "hover:border-red-300 hover:text-red-500"}`}
+                  onClick={handleSaveToggle}
+                  data-ocid="property.toggle"
+                >
+                  <Heart
+                    className={`w-4 h-4 mr-2 ${isThisSaved ? "fill-red-500" : ""}`}
+                  />
+                  {isThisSaved ? "Saved ✓" : "Save Property"}
+                </Button>
                 <Button
                   variant="outline"
                   className="w-full"

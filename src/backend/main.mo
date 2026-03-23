@@ -64,6 +64,7 @@ actor {
   let inquiries = Map.empty<Nat, Inquiry>();
   let ads = Map.empty<Nat, Ad>();
   let userProfiles = Map.empty<Principal, UserProfile>();
+  let savedListings = Map.empty<Principal, [Nat]>();
 
   var nextListingId = 0;
   var nextInquiryId = 0;
@@ -163,6 +164,63 @@ actor {
         listings.remove(id);
       };
     };
+  };
+
+  // Helper: check if array contains a Nat value
+  func natArrayContains(arr : [Nat], val : Nat) : Bool {
+    for (id in arr.vals()) {
+      if (id == val) return true;
+    };
+    false;
+  };
+
+  // Save / Unsave listing functions
+  public shared ({ caller }) func saveListing(listingId : Nat) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Run.trap("Unauthorized: Only users can save listings");
+    };
+    let current = switch (savedListings.get(caller)) {
+      case (null) { [] };
+      case (?ids) { ids };
+    };
+    if (not natArrayContains(current, listingId)) {
+      let updated = current.concat([listingId]);
+      savedListings.add(caller, updated);
+    };
+  };
+
+  public shared ({ caller }) func unsaveListing(listingId : Nat) : async () {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Run.trap("Unauthorized: Only users can unsave listings");
+    };
+    let current = switch (savedListings.get(caller)) {
+      case (null) { [] };
+      case (?ids) { ids };
+    };
+    let updated = current.filter(func(id : Nat) : Bool { id != listingId });
+    savedListings.add(caller, updated);
+  };
+
+  public query ({ caller }) func getSavedListings() : async [PropertyListing] {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      Run.trap("Unauthorized: Only users can view saved listings");
+    };
+    let ids = switch (savedListings.get(caller)) {
+      case (null) { [] };
+      case (?ids) { ids };
+    };
+    ids.filterMap(func(id : Nat) : ?PropertyListing { listings.get(id) });
+  };
+
+  public query ({ caller }) func isListingSaved(listingId : Nat) : async Bool {
+    if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
+      return false;
+    };
+    let ids = switch (savedListings.get(caller)) {
+      case (null) { [] };
+      case (?ids) { ids };
+    };
+    natArrayContains(ids, listingId);
   };
 
   // Inquiry functions

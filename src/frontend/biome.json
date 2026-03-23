@@ -31,6 +31,10 @@
       "style": {
         "useConst": "off",
         "noNonNullAssertion": "off"
+      },
+      "a11y": {
+        "noNoninteractiveTabindex": "off",
+        "useSemanticElements": "off"
       }
     }
   },
