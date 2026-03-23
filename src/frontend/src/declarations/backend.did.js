@@ -36,9 +36,25 @@ export const PropertyListing = IDL.Record({
   'price' : IDL.Nat,
   'location' : IDL.Text,
 });
+export const Ad = IDL.Record({
+  'id' : IDL.Nat,
+  'title' : IDL.Text,
+  'linkUrl' : IDL.Text,
+  'createdAt' : IDL.Int,
+  'isActive' : IDL.Bool,
+  'imageUrl' : IDL.Text,
+});
 export const UserProfile = IDL.Record({
   'name' : IDL.Text,
   'email' : IDL.Text,
+});
+export const Inquiry = IDL.Record({
+  'id' : IDL.Nat,
+  'listingId' : IDL.Nat,
+  'buyerPhone' : IDL.Text,
+  'message' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'buyerName' : IDL.Text,
 });
 
 export const idlService = IDL.Service({
@@ -70,11 +86,20 @@ export const idlService = IDL.Service({
   '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createAd' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Nat], []),
   'createListing' : IDL.Func([PropertyListing], [IDL.Nat], []),
   'deleteListing' : IDL.Func([IDL.Nat], [], []),
+  'getActiveAds' : IDL.Func([], [IDL.Vec(Ad)], ['query']),
+  'getAllAds' : IDL.Func([], [IDL.Vec(Ad)], ['query']),
   'getAllListings' : IDL.Func([], [IDL.Vec(PropertyListing)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getGlobalStats' : IDL.Func(
+      [],
+      [IDL.Record({ 'totalListings' : IDL.Nat, 'totalUsers' : IDL.Nat })],
+      ['query'],
+    ),
+  'getInquiriesForListing' : IDL.Func([IDL.Nat], [IDL.Vec(Inquiry)], ['query']),
   'getListing' : IDL.Func([IDL.Nat], [PropertyListing], ['query']),
   'getMyListings' : IDL.Func([], [IDL.Vec(PropertyListing)], ['query']),
   'getUserProfile' : IDL.Func(
@@ -84,6 +109,26 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'submitInquiry' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
+  'toggleAdActiveState' : IDL.Func([IDL.Nat], [], []),
+  'updateAd' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text, IDL.Text], [], []),
+  'updateListing' : IDL.Func(
+      [
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Nat,
+        IDL.Text,
+        IDL.Text,
+        IDL.Vec(IDL.Text),
+      ],
+      [],
+      [],
+    ),
 });
 
 export const idlInitArgs = [];
@@ -117,7 +162,23 @@ export const idlFactory = ({ IDL }) => {
     'price' : IDL.Nat,
     'location' : IDL.Text,
   });
+  const Ad = IDL.Record({
+    'id' : IDL.Nat,
+    'title' : IDL.Text,
+    'linkUrl' : IDL.Text,
+    'createdAt' : IDL.Int,
+    'isActive' : IDL.Bool,
+    'imageUrl' : IDL.Text,
+  });
   const UserProfile = IDL.Record({ 'name' : IDL.Text, 'email' : IDL.Text });
+  const Inquiry = IDL.Record({
+    'id' : IDL.Nat,
+    'listingId' : IDL.Nat,
+    'buyerPhone' : IDL.Text,
+    'message' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'buyerName' : IDL.Text,
+  });
   
   return IDL.Service({
     '_caffeineStorageBlobIsLive' : IDL.Func(
@@ -148,11 +209,24 @@ export const idlFactory = ({ IDL }) => {
     '_caffeineStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createAd' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [IDL.Nat], []),
     'createListing' : IDL.Func([PropertyListing], [IDL.Nat], []),
     'deleteListing' : IDL.Func([IDL.Nat], [], []),
+    'getActiveAds' : IDL.Func([], [IDL.Vec(Ad)], ['query']),
+    'getAllAds' : IDL.Func([], [IDL.Vec(Ad)], ['query']),
     'getAllListings' : IDL.Func([], [IDL.Vec(PropertyListing)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getGlobalStats' : IDL.Func(
+        [],
+        [IDL.Record({ 'totalListings' : IDL.Nat, 'totalUsers' : IDL.Nat })],
+        ['query'],
+      ),
+    'getInquiriesForListing' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Vec(Inquiry)],
+        ['query'],
+      ),
     'getListing' : IDL.Func([IDL.Nat], [PropertyListing], ['query']),
     'getMyListings' : IDL.Func([], [IDL.Vec(PropertyListing)], ['query']),
     'getUserProfile' : IDL.Func(
@@ -162,6 +236,26 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'submitInquiry' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Nat],
+        [],
+      ),
+    'toggleAdActiveState' : IDL.Func([IDL.Nat], [], []),
+    'updateAd' : IDL.Func([IDL.Nat, IDL.Text, IDL.Text, IDL.Text], [], []),
+    'updateListing' : IDL.Func(
+        [
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Nat,
+          IDL.Text,
+          IDL.Text,
+          IDL.Vec(IDL.Text),
+        ],
+        [],
+        [],
+      ),
   });
 };
 

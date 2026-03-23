@@ -89,9 +89,16 @@ export class ExternalBlob {
         return this;
     }
 }
-export interface UserProfile {
-    name: string;
-    email: string;
+export interface Ad {
+    id: bigint;
+    title: string;
+    linkUrl: string;
+    createdAt: bigint;
+    isActive: boolean;
+    imageUrl: string;
+}
+export interface _CaffeineStorageRefillInformation {
+    proposed_top_up_amount?: bigint;
 }
 export interface _CaffeineStorageCreateCertificateResult {
     method: string;
@@ -109,12 +116,21 @@ export interface PropertyListing {
     price: bigint;
     location: string;
 }
+export interface Inquiry {
+    id: bigint;
+    listingId: bigint;
+    buyerPhone: string;
+    message: string;
+    timestamp: bigint;
+    buyerName: string;
+}
+export interface UserProfile {
+    name: string;
+    email: string;
+}
 export interface _CaffeineStorageRefillResult {
     success?: boolean;
     topped_up_amount?: bigint;
-}
-export interface _CaffeineStorageRefillInformation {
-    proposed_top_up_amount?: bigint;
 }
 export enum UserRole {
     admin = "admin",
@@ -130,16 +146,28 @@ export interface backendInterface {
     _caffeineStorageUpdateGatewayPrincipals(): Promise<void>;
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    createAd(title: string, imageUrl: string, linkUrl: string): Promise<bigint>;
     createListing(listing: PropertyListing): Promise<bigint>;
     deleteListing(id: bigint): Promise<void>;
+    getActiveAds(): Promise<Array<Ad>>;
+    getAllAds(): Promise<Array<Ad>>;
     getAllListings(): Promise<Array<PropertyListing>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
+    getGlobalStats(): Promise<{
+        totalListings: bigint;
+        totalUsers: bigint;
+    }>;
+    getInquiriesForListing(listingId: bigint): Promise<Array<Inquiry>>;
     getListing(id: bigint): Promise<PropertyListing>;
     getMyListings(): Promise<Array<PropertyListing>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    submitInquiry(listingId: bigint, buyerName: string, buyerPhone: string, message: string): Promise<bigint>;
+    toggleAdActiveState(adId: bigint): Promise<void>;
+    updateAd(adId: bigint, title: string, imageUrl: string, linkUrl: string): Promise<void>;
+    updateListing(listingId: bigint, title: string, description: string, price: bigint, propertyType: string, location: string, mediaIds: Array<string>): Promise<void>;
 }
 import type { UserProfile as _UserProfile, UserRole as _UserRole, _CaffeineStorageRefillInformation as __CaffeineStorageRefillInformation, _CaffeineStorageRefillResult as __CaffeineStorageRefillResult } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -256,6 +284,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async createAd(arg0: string, arg1: string, arg2: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.createAd(arg0, arg1, arg2);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.createAd(arg0, arg1, arg2);
+            return result;
+        }
+    }
     async createListing(arg0: PropertyListing): Promise<bigint> {
         if (this.processError) {
             try {
@@ -281,6 +323,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteListing(arg0);
+            return result;
+        }
+    }
+    async getActiveAds(): Promise<Array<Ad>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getActiveAds();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getActiveAds();
+            return result;
+        }
+    }
+    async getAllAds(): Promise<Array<Ad>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAllAds();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAllAds();
             return result;
         }
     }
@@ -324,6 +394,37 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.getCallerUserRole();
             return from_candid_UserRole_n11(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async getGlobalStats(): Promise<{
+        totalListings: bigint;
+        totalUsers: bigint;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getGlobalStats();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getGlobalStats();
+            return result;
+        }
+    }
+    async getInquiriesForListing(arg0: bigint): Promise<Array<Inquiry>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getInquiriesForListing(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getInquiriesForListing(arg0);
+            return result;
         }
     }
     async getListing(arg0: bigint): Promise<PropertyListing> {
@@ -393,6 +494,62 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.saveCallerUserProfile(arg0);
+            return result;
+        }
+    }
+    async submitInquiry(arg0: bigint, arg1: string, arg2: string, arg3: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.submitInquiry(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.submitInquiry(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
+    async toggleAdActiveState(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.toggleAdActiveState(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.toggleAdActiveState(arg0);
+            return result;
+        }
+    }
+    async updateAd(arg0: bigint, arg1: string, arg2: string, arg3: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateAd(arg0, arg1, arg2, arg3);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateAd(arg0, arg1, arg2, arg3);
+            return result;
+        }
+    }
+    async updateListing(arg0: bigint, arg1: string, arg2: string, arg3: bigint, arg4: string, arg5: string, arg6: Array<string>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateListing(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateListing(arg0, arg1, arg2, arg3, arg4, arg5, arg6);
             return result;
         }
     }

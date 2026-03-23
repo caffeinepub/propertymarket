@@ -1,27 +1,31 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { HttpAgent } from "@icp-sdk/core/agent";
 import { useParams } from "@tanstack/react-router";
 import { Link } from "@tanstack/react-router";
 import {
-  Bath,
-  Bed,
   ChevronLeft,
-  Heart,
-  Mail,
   MapPin,
+  MessageCircle,
   Phone,
+  Send,
   Share2,
-  Square,
+  X,
 } from "lucide-react";
-import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { loadConfig } from "../config";
-import { useGetListing } from "../hooks/useQueries";
+import { useGetListing, useSubmitInquiry } from "../hooks/useQueries";
 import { parseMediaId } from "../hooks/useStorageUpload";
 import { StorageClient } from "../utils/StorageClient";
 
@@ -73,69 +77,255 @@ function MediaItem({ mediaId, alt }: { mediaId: string; alt: string }) {
   );
 }
 
+interface ChatMessage {
+  type: "buyer";
+  name: string;
+  phone: string;
+  text: string;
+  time: string;
+}
+
+interface ChatDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  listingTitle: string;
+  ownerEmail: string;
+  listingId: bigint;
+}
+
+function ChatDrawer({
+  open,
+  onClose,
+  listingTitle,
+  ownerEmail,
+  listingId,
+}: ChatDrawerProps) {
+  const submitInquiry = useSubmitInquiry();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [text, setText] = useState("");
+  const [infoSaved, setInfoSaved] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [open]);
+
+  const handleSend = async () => {
+    if (!infoSaved) {
+      if (!name.trim() || !phone.trim()) {
+        toast.error("Please enter your name and phone number.");
+        return;
+      }
+      setInfoSaved(true);
+    }
+    if (!text.trim()) return;
+
+    try {
+      await submitInquiry.mutateAsync({
+        listingId,
+        buyerName: name,
+        buyerPhone: phone,
+        message: text,
+      });
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "buyer",
+          name,
+          phone,
+          text,
+          time: new Date().toLocaleTimeString("en-IN", {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        },
+      ]);
+      setText("");
+    } catch {
+      toast.error("Failed to send message. Please try again.");
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={onClose}
+          />
+          <motion.div
+            key="drawer"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-[#ECE5DD] flex flex-col z-50 shadow-2xl"
+            data-ocid="chat.sheet"
+          >
+            {/* Header */}
+            <div className="bg-[#075E54] text-white px-4 py-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="hover:bg-white/10 p-1 rounded-full"
+                data-ocid="chat.close_button"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">{listingTitle}</p>
+                <p className="text-xs text-white/70 truncate">{ownerEmail}</p>
+              </div>
+            </div>
+
+            {/* Contact info form if not saved */}
+            {!infoSaved && (
+              <div className="bg-white/80 mx-3 mt-3 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                  Your contact info
+                </p>
+                <div>
+                  <Label htmlFor="chat-name" className="text-xs">
+                    Name
+                  </Label>
+                  <Input
+                    id="chat-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                    className="mt-1 h-9 text-sm"
+                    data-ocid="chat.input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="chat-phone" className="text-xs">
+                    Phone
+                  </Label>
+                  <Input
+                    id="chat-phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="mt-1 h-9 text-sm"
+                    data-ocid="chat.input"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Messages */}
+            <ScrollArea className="flex-1 px-3 py-3">
+              {messages.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-xs text-gray-500">
+                    Send a message to the owner about this property
+                  </p>
+                </div>
+              )}
+              {messages.map((msg, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: transient chat messages
+                <div key={`msg-${i}`} className="flex justify-end mb-2">
+                  <div className="bg-[#DCF8C6] rounded-2xl rounded-tr-sm px-3 py-2 max-w-[80%] shadow-sm">
+                    <p className="text-sm text-gray-800">{msg.text}</p>
+                    <p className="text-[10px] text-gray-500 text-right mt-1">
+                      {msg.time} ✓✓
+                    </p>
+                  </div>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </ScrollArea>
+
+            {/* Input */}
+            <div className="bg-[#F0F0F0] px-3 py-2 flex gap-2 items-end">
+              <Textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 bg-white rounded-xl resize-none text-sm min-h-[40px] max-h-24 border-0 focus-visible:ring-0"
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                data-ocid="chat.textarea"
+              />
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={submitInquiry.isPending}
+                className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center hover:bg-[#128C7E] transition-colors shrink-0 disabled:opacity-50"
+                data-ocid="chat.submit_button"
+              >
+                <Send className="w-4 h-4 text-white" />
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function PropertyDetailPage() {
-  const { id } = useParams({ strict: false }) as { id: string };
-  const [liked, setLiked] = useState(false);
-  const {
-    data: listing,
-    isLoading,
-    isError,
-  } = useGetListing(BigInt(id ?? "0"));
+  const { id } = useParams({ from: "/property/$id" });
+  const listingId = BigInt(id);
+  const { data: listing, isLoading } = useGetListing(listingId);
+  const [chatOpen, setChatOpen] = useState(false);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
         <Navbar />
-        <main className="flex-1 max-w-5xl mx-auto px-4 py-10 w-full">
-          <Skeleton className="h-96 rounded-2xl mb-6" />
-          <Skeleton className="h-8 w-1/2 mb-3" />
-          <Skeleton className="h-5 w-1/3" />
+        <main className="flex-1 max-w-4xl mx-auto px-4 py-10 w-full">
+          <Skeleton className="h-8 w-32 mb-6" />
+          <Skeleton className="h-72 rounded-xl mb-6" />
+          <Skeleton className="h-48 rounded-xl" />
         </main>
         <Footer />
+        <BottomNav />
       </div>
     );
   }
 
-  if (isError || !listing) {
+  if (!listing) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center" data-ocid="property.error_state">
-            <p className="text-2xl font-bold text-foreground mb-2">
-              Listing Not Found
-            </p>
-            <p className="text-muted-foreground mb-6">
-              This property may have been removed.
-            </p>
+            <p className="text-2xl font-bold mb-2">Property Not Found</p>
             <Link to="/">
-              <Button>Back to Listings</Button>
+              <Button variant="outline">Back to Listings</Button>
             </Link>
           </div>
         </main>
         <Footer />
+        <BottomNav />
       </div>
     );
   }
 
-  const imageMedia = listing.mediaIds.filter((id) => id.startsWith("image:"));
-  const videoMedia = listing.mediaIds.filter((id) => id.startsWith("video:"));
-  const hasMedia = listing.mediaIds.length > 0;
-
-  const heroImage = imageMedia[0]
-    ? undefined
-    : listing.propertyType.toLowerCase() === "plot"
-      ? "/assets/generated/property-plot-1.dim_800x500.jpg"
-      : listing.propertyType.toLowerCase() === "apartment"
-        ? "/assets/generated/property-apartment-1.dim_800x500.jpg"
-        : "/assets/generated/property-house-1.dim_800x500.jpg";
+  const whatsappText = encodeURIComponent(
+    `I'm interested in your property: ${listing.title} - Listed at \u20B9${Number(listing.price).toLocaleString("en-IN")}. Please share more details.`,
+  );
+  const whatsappUrl = `https://wa.me/?text=${whatsappText}`;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
       <Navbar />
 
       <main className="flex-1">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back */}
           <Link
             to="/"
@@ -146,189 +336,134 @@ export default function PropertyDetailPage() {
           </Link>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
+            {/* Left: Media + Details */}
             <div className="lg:col-span-2">
-              {/* Hero image / media */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="relative rounded-2xl overflow-hidden mb-6"
-              >
-                {imageMedia.length > 0 ? (
-                  <MediaItem mediaId={imageMedia[0]} alt={listing.title} />
-                ) : (
-                  <img
-                    src={heroImage}
-                    alt={listing.title}
-                    className="w-full h-80 object-cover rounded-2xl"
-                  />
-                )}
-                <div className="absolute top-4 right-4 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLiked(!liked)}
-                    className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
-                  >
-                    <Heart
-                      className={`w-4 h-4 ${liked ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center hover:bg-white transition-colors"
-                  >
-                    <Share2 className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
-              </motion.div>
-
-              {/* Tabs for media */}
-              {hasMedia && (
-                <Tabs defaultValue="photos" className="mb-6">
-                  <TabsList>
-                    <TabsTrigger value="photos" data-ocid="property.tab">
-                      Photos ({imageMedia.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="videos" data-ocid="property.tab">
-                      Videos ({videoMedia.length})
-                    </TabsTrigger>
+              {/* Media */}
+              {listing.mediaIds.length > 0 ? (
+                <Tabs defaultValue="0" className="mb-6">
+                  <TabsList className="mb-3">
+                    {listing.mediaIds.map((mediaId, i) => (
+                      <TabsTrigger
+                        key={mediaId}
+                        value={i.toString()}
+                        data-ocid="property.tab"
+                      >
+                        Media {i + 1}
+                      </TabsTrigger>
+                    ))}
                   </TabsList>
-                  <TabsContent value="photos" className="mt-4">
-                    {imageMedia.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No photos uploaded.
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        {imageMedia.map((mid, i) => (
-                          <MediaItem
-                            key={mid}
-                            mediaId={mid}
-                            alt={`Photo ${i + 1}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
-                  <TabsContent value="videos" className="mt-4">
-                    {videoMedia.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">
-                        No videos uploaded.
-                      </p>
-                    ) : (
-                      <div className="space-y-4">
-                        {videoMedia.map((mid, i) => (
-                          <MediaItem
-                            key={mid}
-                            mediaId={mid}
-                            alt={`Video ${i + 1}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </TabsContent>
+                  {listing.mediaIds.map((mediaId, i) => (
+                    <TabsContent key={mediaId} value={i.toString()}>
+                      <MediaItem mediaId={mediaId} alt={listing.title} />
+                    </TabsContent>
+                  ))}
                 </Tabs>
+              ) : (
+                <div className="h-72 rounded-xl bg-muted flex items-center justify-center mb-6">
+                  <p className="text-muted-foreground text-sm">
+                    No media uploaded
+                  </p>
+                </div>
               )}
 
-              {/* Title & Details */}
-              <div className="mb-4">
-                <div className="flex items-start justify-between gap-4">
-                  <h1 className="text-2xl font-bold text-foreground font-display">
-                    {listing.title}
-                  </h1>
-                  <Badge
-                    style={{ backgroundColor: "#1E88E5" }}
-                    className="text-white shrink-0"
-                  >
-                    {listing.propertyType}
-                  </Badge>
+              {/* Info */}
+              <div className="bg-card border border-border rounded-2xl p-6 mb-4">
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <Badge
+                      className="mb-2 text-white"
+                      style={{
+                        backgroundColor:
+                          listing.propertyType.toLowerCase() === "plot"
+                            ? "#e53935"
+                            : "#1E88E5",
+                      }}
+                    >
+                      {listing.propertyType}
+                    </Badge>
+                    <h1 className="text-2xl font-bold text-foreground font-display">
+                      {listing.title}
+                    </h1>
+                    <div className="flex items-center gap-1 text-muted-foreground text-sm mt-2">
+                      <MapPin className="w-4 h-4" />
+                      {listing.location}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-3xl font-bold text-primary">
+                      {formatPrice(listing.price)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Listing #{listing.id.toString()}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-muted-foreground text-sm mt-2">
-                  <MapPin className="w-4 h-4" />
-                  <span>{listing.location}</span>
-                </div>
-                <p className="text-3xl font-bold text-foreground mt-3">
-                  {formatPrice(listing.price)}
+
+                <p className="text-muted-foreground leading-relaxed">
+                  {listing.description}
                 </p>
               </div>
 
-              {/* Property stats */}
-              <div className="grid grid-cols-3 gap-4 bg-muted/50 rounded-xl p-4 mb-6">
-                <div className="text-center">
-                  <Bed className="w-5 h-5 mx-auto text-primary mb-1" />
-                  <p className="text-sm font-semibold">3</p>
-                  <p className="text-xs text-muted-foreground">Bedrooms</p>
-                </div>
-                <div className="text-center">
-                  <Bath className="w-5 h-5 mx-auto text-primary mb-1" />
-                  <p className="text-sm font-semibold">2</p>
-                  <p className="text-xs text-muted-foreground">Bathrooms</p>
-                </div>
-                <div className="text-center">
-                  <Square className="w-5 h-5 mx-auto text-primary mb-1" />
-                  <p className="text-sm font-semibold">1,240</p>
-                  <p className="text-xs text-muted-foreground">Sq Ft</p>
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <h2 className="text-lg font-semibold mb-2">Description</h2>
-                <p className="text-muted-foreground leading-relaxed text-sm">
-                  {listing.description}
+              {/* Owner Contact */}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Listed by
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {listing.ownerEmail}
                 </p>
               </div>
             </div>
 
-            {/* Sidebar: Contact */}
+            {/* Right: Actions */}
             <div className="lg:col-span-1">
-              <div
-                className="bg-card border border-border rounded-2xl p-6 sticky top-24"
-                data-ocid="property.card"
-              >
-                <h3 className="font-semibold text-foreground mb-4">
-                  Contact Owner
-                </h3>
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-primary font-bold text-sm">
-                        {listing.ownerEmail?.[0]?.toUpperCase() ?? "O"}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        Property Owner
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {listing.ownerEmail}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
+              <div className="bg-card border border-border rounded-2xl p-6 sticky top-24 space-y-3">
+                <p className="text-xl font-bold text-foreground">
+                  {formatPrice(listing.price)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {listing.location}
+                </p>
+
+                <Button
+                  className="w-full bg-primary text-white hover:bg-primary/90"
+                  onClick={() => setChatOpen(true)}
+                  data-ocid="property.open_modal_button"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Chat with Seller
+                </Button>
+
+                {/* WhatsApp Button */}
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-ocid="property.button"
+                >
                   <Button
-                    className="w-full bg-primary text-white hover:bg-primary/90"
-                    data-ocid="property.primary_button"
+                    className="w-full text-white"
+                    style={{ backgroundColor: "#25D366" }}
                   >
                     <Phone className="w-4 h-4 mr-2" />
-                    Request Callback
+                    WhatsApp
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    data-ocid="property.secondary_button"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Send Message
-                  </Button>
-                </div>
-                <div className="mt-6 pt-6 border-t border-border text-xs text-muted-foreground">
-                  Listed on:{" "}
-                  {new Date(
-                    Number(listing.createdAt) / 1_000_000,
-                  ).toLocaleDateString()}
-                </div>
+                </a>
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    navigator.clipboard
+                      .writeText(window.location.href)
+                      .then(() => toast.success("Link copied!"))
+                      .catch(() => {});
+                  }}
+                  data-ocid="property.secondary_button"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share Listing
+                </Button>
               </div>
             </div>
           </div>
@@ -336,6 +471,15 @@ export default function PropertyDetailPage() {
       </main>
 
       <Footer />
+      <BottomNav />
+
+      <ChatDrawer
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        listingTitle={listing.title}
+        ownerEmail={listing.ownerEmail}
+        listingId={listing.id}
+      />
     </div>
   );
 }

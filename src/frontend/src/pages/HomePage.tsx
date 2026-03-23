@@ -8,133 +8,120 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Principal } from "@dfinity/principal";
-import { useRouter } from "@tanstack/react-router";
-import { Search, Shield, TrendingUp, Users } from "lucide-react";
+import {
+  Building2,
+  IndianRupee,
+  LayoutGrid,
+  Search,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
-import { useState } from "react";
-import type { PropertyListing } from "../backend";
+import { useRef, useState } from "react";
+import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
-import { useGetAllListings } from "../hooks/useQueries";
+import { useGetAllListings, useGetGlobalStats } from "../hooks/useQueries";
 
-// Static sample listings for first-load experience
-const SAMPLE_LISTINGS: PropertyListing[] = [
+const FEATURES = [
   {
-    id: 1001n,
-    title: "Grand Villa with Panoramic City Views",
+    icon: IndianRupee,
+    title: "Real Pricing",
     description:
-      "Stunning modern villa featuring floor-to-ceiling windows, open-plan living spaces, and a rooftop terrace with breathtaking city views.",
-    price: 1250000n,
-    propertyType: "house",
-    location: "Beverly Hills, CA 90210",
-    mediaIds: [],
-    ownerEmail: "owner@example.com",
-    ownerId: Principal.fromText("aaaaa-aa"),
-    createdAt: BigInt(Date.now()),
+      "We focus on listings that reflect actual market values, ensuring you get the best deal without unnecessary markups.",
   },
   {
-    id: 1002n,
-    title: "Prime Corner Plot — Downtown District",
+    icon: LayoutGrid,
+    title: "A Complete Marketplace",
     description:
-      "A rare opportunity to own a prime corner plot in the heart of the downtown district. Ready for immediate development.",
-    price: 580000n,
-    propertyType: "plot",
-    location: "Manhattan, NY 10001",
-    mediaIds: [],
-    ownerEmail: "owner2@example.com",
-    ownerId: Principal.fromText("aaaaa-aa"),
-    createdAt: BigInt(Date.now()),
+      "From residential flats and luxury villas to commercial shops and agricultural plots—we bring the entire property market to your fingertips.",
   },
   {
-    id: 1003n,
-    title: "Contemporary Family Townhouse",
+    icon: ShieldCheck,
+    title: "Direct & Transparent",
     description:
-      "Elegant townhouse spread over three floors, with four bedrooms, a landscaped garden, and a double garage.",
-    price: 895000n,
-    propertyType: "townhouse",
-    location: "Notting Hill, London W11",
-    mediaIds: [],
-    ownerEmail: "owner3@example.com",
-    ownerId: Principal.fromText("aaaaa-aa"),
-    createdAt: BigInt(Date.now()),
-  },
-  {
-    id: 1004n,
-    title: "Luxury Sky Apartment — 35th Floor",
-    description:
-      "High-rise luxury apartment with designer interiors, gym access, concierge, and 360-degree skyline views.",
-    price: 2100000n,
-    propertyType: "apartment",
-    location: "Dubai Marina, UAE",
-    mediaIds: [],
-    ownerEmail: "owner4@example.com",
-    ownerId: Principal.fromText("aaaaa-aa"),
-    createdAt: BigInt(Date.now()),
-  },
-  {
-    id: 1005n,
-    title: "Hillside Development Plot",
-    description:
-      "Serene hillside plot with planning permission granted for a 5-bedroom eco-home. Unobstructed mountain views.",
-    price: 340000n,
-    propertyType: "plot",
-    location: "Malibu Hills, CA 90265",
-    mediaIds: [],
-    ownerEmail: "owner5@example.com",
-    ownerId: Principal.fromText("aaaaa-aa"),
-    createdAt: BigInt(Date.now()),
-  },
-  {
-    id: 1006n,
-    title: "Charming Heritage Cottage",
-    description:
-      "Beautifully restored heritage cottage with original features, stone fireplace, and a private walled garden.",
-    price: 720000n,
-    propertyType: "house",
-    location: "Cotswolds, Gloucestershire",
-    mediaIds: [],
-    ownerEmail: "owner6@example.com",
-    ownerId: Principal.fromText("aaaaa-aa"),
-    createdAt: BigInt(Date.now()),
+      "We bridge the gap between buyers and sellers, providing a platform built on trust, verified information, and ease of use.",
   },
 ];
 
-const NEIGHBORHOODS = [
+const TEAM = [
   {
-    name: "Beverly Hills",
-    tag: "Luxury Homes",
-    image: "/assets/generated/property-house-1.dim_800x500.jpg",
+    name: "Prem Bhati",
+    role: "Owner & Visionary",
+    bio: "As the Owner of Property Market, Prem Bhati leads the strategic vision and growth of the platform. With a deep focus on market integrity, Prem ensures that every user has access to real property prices and a trustworthy marketplace experience.",
+    initials: "PB",
   },
   {
-    name: "Manhattan",
-    tag: "City Living",
-    image: "/assets/generated/property-apartment-1.dim_800x500.jpg",
-  },
-  {
-    name: "Malibu Coast",
-    tag: "Beach & Plots",
-    image: "/assets/generated/property-plot-2.dim_800x500.jpg",
+    name: "Ravina Bhatti",
+    role: "Lead App Developer",
+    bio: "Ravina Bhatti drives the technical excellence behind Property Market, building a seamless and reliable platform that connects buyers and sellers with confidence.",
+    initials: "RB",
   },
 ];
+
+const PRICE_RANGES = [
+  { value: "all", label: "Any Price" },
+  { value: "under50l", label: "Under ₹50 Lakh" },
+  { value: "50l-1cr", label: "₹50L – ₹1 Crore" },
+  { value: "1cr-5cr", label: "₹1 Cr – ₹5 Crore" },
+  { value: "above5cr", label: "Above ₹5 Crore" },
+];
+
+const PROPERTY_TYPES = [
+  { value: "all", label: "All Types" },
+  { value: "residential", label: "Residential" },
+  { value: "commercial", label: "Commercial" },
+  { value: "agricultural", label: "Agricultural" },
+  { value: "house", label: "House" },
+  { value: "apartment", label: "Apartment" },
+  { value: "plot", label: "Plot / Land" },
+];
+
+function matchesPriceRange(price: bigint, range: string): boolean {
+  const num = Number(price);
+  switch (range) {
+    case "under50l":
+      return num < 5_000_000;
+    case "50l-1cr":
+      return num >= 5_000_000 && num < 10_000_000;
+    case "1cr-5cr":
+      return num >= 10_000_000 && num < 50_000_000;
+    case "above5cr":
+      return num >= 50_000_000;
+    default:
+      return true;
+  }
+}
 
 export default function HomePage() {
   const [searchLocation, setSearchLocation] = useState("");
-  const [propertyType, setPropertyType] = useState("");
-  const router = useRouter();
+  const [propertyType, setPropertyType] = useState("all");
+  const [priceRange, setPriceRange] = useState("all");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const searchSectionRef = useRef<HTMLDivElement>(null);
+
   const { data: listings, isLoading } = useGetAllListings();
+  const { data: stats } = useGetGlobalStats();
 
-  const displayListings: PropertyListing[] =
-    listings && listings.length > 0 ? listings : SAMPLE_LISTINGS;
+  const filteredListings = (listings ?? []).filter((l) => {
+    const matchesLocation =
+      !searchLocation ||
+      l.location.toLowerCase().includes(searchLocation.toLowerCase()) ||
+      l.title.toLowerCase().includes(searchLocation.toLowerCase());
+    const matchesType =
+      propertyType === "all" || l.propertyType.toLowerCase() === propertyType;
+    const matchesPrice = matchesPriceRange(l.price, priceRange);
+    return matchesLocation && matchesType && matchesPrice;
+  });
 
-  const handleSearch = () => {
-    // Navigate to home with filters (simplified)
-    router.navigate({ to: "/" });
+  const handleSearchScrollFocus = () => {
+    searchSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => searchRef.current?.focus(), 400);
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
       <Navbar />
 
       <main className="flex-1">
@@ -167,11 +154,11 @@ export default function HomePage() {
               transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
               className="text-lg text-white/80 mb-8"
             >
-              Browse thousands of houses, plots, and apartments. Owners publish
+              Browse real properties listed by verified owners. Owners publish
               live videos and photos.
             </motion.p>
 
-            {/* Search Bar */}
+            {/* Hero Search Bar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -180,30 +167,16 @@ export default function HomePage() {
             >
               <div className="flex-1">
                 <Input
-                  placeholder="Search by location, city, or zip code..."
+                  placeholder="Search by location, city, or title..."
                   value={searchLocation}
                   onChange={(e) => setSearchLocation(e.target.value)}
                   className="border-0 bg-transparent text-foreground focus-visible:ring-0 h-11 text-sm"
                   data-ocid="search.input"
                 />
               </div>
-              <Select value={propertyType} onValueChange={setPropertyType}>
-                <SelectTrigger
-                  className="w-full sm:w-44 border-0 bg-muted h-11 text-sm"
-                  data-ocid="search.select"
-                >
-                  <SelectValue placeholder="Property Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="house">House</SelectItem>
-                  <SelectItem value="plot">Plot</SelectItem>
-                  <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="townhouse">Townhouse</SelectItem>
-                </SelectContent>
-              </Select>
               <Button
-                onClick={handleSearch}
                 className="bg-primary text-white h-11 px-6 shrink-0 hover:bg-primary/90"
+                onClick={handleSearchScrollFocus}
                 data-ocid="search.primary_button"
               >
                 <Search className="w-4 h-4 mr-2" />
@@ -213,114 +186,269 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Stats Bar */}
-        <section className="bg-card border-b border-border">
+        {/* Global Stats Banner */}
+        <section className="bg-primary text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
-            <div className="grid grid-cols-3 divide-x divide-border text-center">
-              {[
-                {
-                  icon: TrendingUp,
-                  value: "12,000+",
-                  label: "Active Listings",
-                },
-                { icon: Users, value: "8,500+", label: "Happy Buyers" },
-                { icon: Shield, value: "100%", label: "Verified Owners" },
-              ].map(({ icon: Icon, value, label }) => (
-                <div key={label} className="px-4 py-1">
-                  <div className="flex items-center justify-center gap-2">
-                    <Icon className="w-4 h-4 text-primary" />
-                    <span className="font-bold text-lg text-foreground">
-                      {value}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {label}
-                  </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-white/20 text-center">
+              <div className="px-4 py-1">
+                <div className="flex items-center justify-center gap-2">
+                  <Users className="w-5 h-5 text-white/80" />
+                  <span className="font-bold text-xl">
+                    {stats ? Number(stats.totalUsers).toString() : "..."}
+                  </span>
                 </div>
-              ))}
+                <p className="text-xs text-white/70 mt-0.5">Registered Users</p>
+              </div>
+              <div className="px-4 py-1">
+                <div className="flex items-center justify-center gap-2">
+                  <Building2 className="w-5 h-5 text-white/80" />
+                  <span className="font-bold text-xl">
+                    {stats ? Number(stats.totalListings).toString() : "..."}
+                  </span>
+                </div>
+                <p className="text-xs text-white/70 mt-0.5">Total Listings</p>
+              </div>
+              <div className="px-4 py-1">
+                <div className="flex items-center justify-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-white/80" />
+                  <span className="font-bold text-xl">100%</span>
+                </div>
+                <p className="text-xs text-white/70 mt-0.5">Verified Owners</p>
+              </div>
+              <div className="px-4 py-1">
+                <div className="flex items-center justify-center gap-2">
+                  <IndianRupee className="w-5 h-5 text-white/80" />
+                  <span className="font-bold text-xl">Real</span>
+                </div>
+                <p className="text-xs text-white/70 mt-0.5">Market Prices</p>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Featured Listings */}
+        {/* About Section */}
         <section
-          className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14"
-          data-ocid="listings.section"
+          className="bg-card border-b border-border py-16"
+          data-ocid="about.section"
         >
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold text-foreground font-display">
-                Featured Listings
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-center mb-12"
+            >
+              <h2 className="font-display text-4xl font-bold text-foreground mb-4">
+                Welcome to Property Market
               </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Handpicked properties for every lifestyle
+              <p className="text-muted-foreground text-lg max-w-3xl mx-auto leading-relaxed">
+                Your ultimate destination for finding the right property at the
+                Real Market Price. Our platform was built with a single mission:
+                to create a transparent and reliable Full Property Market where
+                buyers and sellers can connect without the confusion of hidden
+                costs or inflated pricing.
               </p>
+            </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {FEATURES.map((f, i) => (
+                <motion.div
+                  key={f.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1, duration: 0.5 }}
+                  className="text-center p-6 rounded-2xl border border-border bg-background hover:shadow-card transition-shadow"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <f.icon className="w-7 h-7 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-lg mb-2">
+                    {f.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {f.description}
+                  </p>
+                </motion.div>
+              ))}
             </div>
           </div>
-
-          {isLoading ? (
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-              data-ocid="listings.loading_state"
-            >
-              {(["a", "b", "c", "d", "e", "f"] as const).map((k) => (
-                <div key={k} className="space-y-3">
-                  <Skeleton className="h-52 rounded-xl" />
-                  <Skeleton className="h-5 w-2/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-              data-ocid="listings.list"
-            >
-              {displayListings.map((listing, i) => (
-                <PropertyCard
-                  key={listing.id.toString()}
-                  listing={listing}
-                  index={i + 1}
-                />
-              ))}
-            </div>
-          )}
         </section>
 
-        {/* Explore Neighborhoods */}
-        <section className="bg-card py-14">
+        {/* Search & Filter Section */}
+        <section
+          id="search-section"
+          ref={searchSectionRef}
+          className="py-10 border-b border-border bg-background"
+          data-ocid="filter.section"
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-8">
-              <h2 className="text-3xl font-bold text-foreground font-display">
-                Explore Neighborhoods
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                Discover properties in top locations
-              </p>
+            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  ref={searchRef}
+                  placeholder="Search by location, city, or property title..."
+                  value={searchLocation}
+                  onChange={(e) => setSearchLocation(e.target.value)}
+                  className="pl-9 h-11"
+                  data-ocid="filter.search_input"
+                />
+              </div>
+              <Select value={propertyType} onValueChange={setPropertyType}>
+                <SelectTrigger
+                  className="w-full md:w-48 h-11"
+                  data-ocid="filter.select"
+                >
+                  <SelectValue placeholder="Property Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROPERTY_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={priceRange} onValueChange={setPriceRange}>
+                <SelectTrigger
+                  className="w-full md:w-48 h-11"
+                  data-ocid="filter.select"
+                >
+                  <SelectValue placeholder="Price Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRICE_RANGES.map((r) => (
+                    <SelectItem key={r.value} value={r.value}>
+                      {r.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {(searchLocation ||
+                propertyType !== "all" ||
+                priceRange !== "all") && (
+                <Button
+                  variant="outline"
+                  className="h-11 shrink-0"
+                  onClick={() => {
+                    setSearchLocation("");
+                    setPropertyType("all");
+                    setPriceRange("all");
+                  }}
+                  data-ocid="filter.secondary_button"
+                >
+                  Clear
+                </Button>
+              )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {NEIGHBORHOODS.map((n, i) => (
+            <p className="text-xs text-muted-foreground mt-3">
+              {isLoading
+                ? "Loading listings..."
+                : `Showing ${filteredListings.length} of ${listings?.length ?? 0} listings`}
+            </p>
+          </div>
+        </section>
+
+        {/* Listings Grid */}
+        <section className="py-12" data-ocid="listings.section">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="font-display text-3xl font-bold text-foreground">
+                All Properties
+              </h2>
+            </div>
+
+            {isLoading ? (
+              <div
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                data-ocid="listings.loading_state"
+              >
+                {[1, 2, 3, 4, 5, 6].map((k) => (
+                  <Skeleton key={k} className="h-72 rounded-2xl" />
+                ))}
+              </div>
+            ) : filteredListings.length === 0 ? (
+              <div
+                className="text-center py-20 bg-card border border-border rounded-2xl"
+                data-ocid="listings.empty_state"
+              >
+                <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-lg font-medium text-foreground mb-2">
+                  No properties found
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  Try adjusting your search filters.
+                </p>
+              </div>
+            ) : (
+              <motion.div
+                initial="hidden"
+                animate="show"
+                variants={{
+                  hidden: {},
+                  show: { transition: { staggerChildren: 0.06 } },
+                }}
+                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                data-ocid="listings.list"
+              >
+                {filteredListings.map((listing, i) => (
+                  <motion.div
+                    key={listing.id.toString()}
+                    variants={{
+                      hidden: { opacity: 0, y: 20 },
+                      show: { opacity: 1, y: 0 },
+                    }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <PropertyCard listing={listing} index={i + 1} />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </div>
+        </section>
+
+        {/* Team Section */}
+        <section className="bg-card border-t border-border py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="font-display text-3xl font-bold text-foreground mb-3">
+                Meet the Team
+              </h2>
+              <p className="text-muted-foreground">
+                The people behind PropMarket
+              </p>
+            </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
+              {TEAM.map((member, i) => (
                 <motion.div
-                  key={n.name}
+                  key={member.name}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
-                  className="relative h-56 rounded-2xl overflow-hidden cursor-pointer group"
-                  data-ocid={`neighborhood.card.${i + 1}`}
+                  className="bg-background border border-border rounded-2xl p-6 text-center hover:shadow-card transition-shadow"
                 >
-                  <img
-                    src={n.image}
-                    alt={n.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                  <div className="absolute bottom-4 left-4 text-white">
-                    <p className="text-xs font-medium text-white/70 uppercase tracking-wider">
-                      {n.tag}
-                    </p>
-                    <p className="text-xl font-bold font-display">{n.name}</p>
+                  <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <span className="font-bold text-xl text-primary">
+                      {member.initials}
+                    </span>
                   </div>
+                  <h3 className="font-semibold text-foreground text-lg">
+                    {member.name}
+                  </h3>
+                  <p className="text-primary text-sm font-medium mb-3">
+                    {member.role}
+                  </p>
+                  <p className="text-muted-foreground text-sm leading-relaxed">
+                    {member.bio}
+                  </p>
                 </motion.div>
               ))}
             </div>
@@ -329,6 +457,7 @@ export default function HomePage() {
       </main>
 
       <Footer />
+      <BottomNav onSearchClick={handleSearchScrollFocus} />
     </div>
   );
 }

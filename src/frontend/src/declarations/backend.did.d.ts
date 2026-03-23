@@ -10,6 +10,22 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
+export interface Ad {
+  'id' : bigint,
+  'title' : string,
+  'linkUrl' : string,
+  'createdAt' : bigint,
+  'isActive' : boolean,
+  'imageUrl' : string,
+}
+export interface Inquiry {
+  'id' : bigint,
+  'listingId' : bigint,
+  'buyerPhone' : string,
+  'message' : string,
+  'timestamp' : bigint,
+  'buyerName' : string,
+}
 export interface PropertyListing {
   'id' : bigint,
   'ownerEmail' : string,
@@ -55,16 +71,31 @@ export interface _SERVICE {
   '_caffeineStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createAd' : ActorMethod<[string, string, string], bigint>,
   'createListing' : ActorMethod<[PropertyListing], bigint>,
   'deleteListing' : ActorMethod<[bigint], undefined>,
+  'getActiveAds' : ActorMethod<[], Array<Ad>>,
+  'getAllAds' : ActorMethod<[], Array<Ad>>,
   'getAllListings' : ActorMethod<[], Array<PropertyListing>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getGlobalStats' : ActorMethod<
+    [],
+    { 'totalListings' : bigint, 'totalUsers' : bigint }
+  >,
+  'getInquiriesForListing' : ActorMethod<[bigint], Array<Inquiry>>,
   'getListing' : ActorMethod<[bigint], PropertyListing>,
   'getMyListings' : ActorMethod<[], Array<PropertyListing>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'submitInquiry' : ActorMethod<[bigint, string, string, string], bigint>,
+  'toggleAdActiveState' : ActorMethod<[bigint], undefined>,
+  'updateAd' : ActorMethod<[bigint, string, string, string], undefined>,
+  'updateListing' : ActorMethod<
+    [bigint, string, string, bigint, string, string, Array<string>],
+    undefined
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
