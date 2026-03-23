@@ -1,129 +1,17 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useRouter } from "@tanstack/react-router";
-import { Menu, MoreVertical, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Home, Plus, Search, User } from "lucide-react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useGetCallerUserProfile } from "../hooks/useQueries";
 
-function OmniDotMenu() {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleChatClick = () => {
-    setOpen(false);
-    const win = window as unknown as Record<string, unknown>;
-    if (typeof win.OmniDim === "object" && win.OmniDim !== null) {
-      const omni = win.OmniDim as Record<string, unknown>;
-      if (typeof omni.open === "function") {
-        (omni.open as () => void)();
-        return;
-      }
-    }
-    const iframe = document.querySelector(
-      "iframe[src*='omnidim.io']",
-    ) as HTMLIFrameElement | null;
-    if (iframe) {
-      iframe.style.setProperty(
-        "display",
-        iframe.style.display === "none" ? "block" : "none",
-        "important",
-      );
-    }
-  };
-
-  return (
-    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
-      <button
-        type="button"
-        aria-label="More options"
-        onClick={() => setOpen((v) => !v)}
-        style={{
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          padding: "6px",
-          borderRadius: "6px",
-          display: "flex",
-          alignItems: "center",
-          color: "#555",
-        }}
-      >
-        <MoreVertical size={22} />
-      </button>
-      {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: "110%",
-            right: 0,
-            background: "white",
-            border: "1px solid #e5e7eb",
-            borderRadius: "10px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-            minWidth: "180px",
-            zIndex: 9999,
-            padding: "8px",
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleChatClick}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              width: "100%",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              padding: "10px 12px",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#222",
-              transition: "background 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "#f3f4f6";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background =
-                "transparent";
-            }}
-          >
-            <img
-              src="/assets/generated/omnidim-robot-icon-transparent.dim_100x100.png"
-              alt="AI Agent"
-              style={{ width: "28px", height: "28px", borderRadius: "50%" }}
-            />
-            AI Agent Chat
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Navbar() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { identity, clear } = useInternetIdentity();
   const queryClient = useQueryClient();
   const isAuthenticated = !!identity;
   const { data: profile } = useGetCallerUserProfile();
   const router = useRouter();
+  const currentPath = router.state.location.pathname;
 
   const handleLogout = async () => {
     await clear();
@@ -131,166 +19,127 @@ export default function Navbar() {
     router.navigate({ to: "/" });
   };
 
-  const navLinks = [
-    { label: "Buy", href: "/?type=house" },
-    { label: "Rent", href: "/?type=rent" },
-    { label: "Sell", href: "/dashboard" },
-    { label: "Agents", href: "/" },
-    { label: "Guides", href: "/" },
-    { label: "About Us", href: "/" },
-  ];
+  const handleSearchClick = () => {
+    if (router.state.location.pathname !== "/") {
+      router.navigate({ to: "/" });
+      setTimeout(() => {
+        const el = document.getElementById("search-section");
+        if (el) el.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    } else {
+      const el = document.getElementById("search-section");
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const isActive = (path: string) => currentPath === path;
 
   return (
-    <header className="sticky top-0 z-50 bg-card border-b border-border shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center shrink-0"
-            data-ocid="nav.link"
-          >
+          <Link to="/" className="flex items-center shrink-0">
             <img
               src="/assets/uploads/1774244954811-1.png"
               alt="PropertyMarket"
-              className="h-12 w-auto object-contain"
+              className="h-10 w-auto object-contain"
             />
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent"
-                data-ocid="nav.link"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
+          {/* Nav Items - shown on all screen sizes */}
+          <nav className="flex items-center gap-1 sm:gap-2">
+            {/* Home */}
+            <Link
+              to="/"
+              className={`flex flex-col items-center justify-center px-2 sm:px-4 py-1 rounded-lg text-xs font-medium transition-colors gap-0.5 ${
+                isActive("/")
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+              data-ocid="nav.link"
+            >
+              <Home
+                className={`w-5 h-5 ${isActive("/") ? "fill-primary/20 stroke-primary" : ""}`}
+              />
+              <span>Home</span>
+            </Link>
 
-          {/* CTA Buttons + 3-dot menu */}
-          <div className="hidden md:flex items-center gap-3">
-            {isAuthenticated ? (
-              <>
-                <Link to="/create-listing">
-                  <Button
-                    size="sm"
-                    className="bg-primary text-white hover:bg-primary/90"
-                    data-ocid="nav.primary_button"
-                  >
-                    Post Property
-                  </Button>
-                </Link>
-                <Link to="/dashboard">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    data-ocid="nav.secondary_button"
-                  >
-                    Dashboard
-                  </Button>
-                </Link>
-                <Avatar
-                  className="w-8 h-8 cursor-pointer"
-                  onClick={handleLogout}
-                >
-                  <AvatarFallback className="bg-primary text-white text-xs">
-                    {profile?.name?.[0]?.toUpperCase() ?? "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </>
-            ) : (
-              <>
-                <Link to="/create-listing">
-                  <Button
-                    size="sm"
-                    className="bg-primary text-white hover:bg-primary/90"
-                    data-ocid="nav.primary_button"
-                  >
-                    Post Property
-                  </Button>
-                </Link>
-                <Link to="/login">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    data-ocid="nav.secondary_button"
-                  >
-                    Sign In / Register
-                  </Button>
-                </Link>
-              </>
-            )}
-            {/* 3-dot menu with AI Agent */}
-            <OmniDotMenu />
-          </div>
-
-          {/* Mobile: 3-dot menu + hamburger */}
-          <div className="md:hidden flex items-center gap-1">
-            <OmniDotMenu />
+            {/* Search */}
             <button
               type="button"
-              className="p-2 rounded-md text-muted-foreground hover:text-foreground"
-              onClick={() => setMobileOpen(!mobileOpen)}
+              onClick={handleSearchClick}
+              className="flex flex-col items-center justify-center px-2 sm:px-4 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors gap-0.5"
+              data-ocid="nav.button"
             >
-              {mobileOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
+              <Search className="w-5 h-5" />
+              <span>Search</span>
             </button>
-          </div>
-        </div>
 
-        {/* Mobile Nav */}
-        {mobileOpen && (
-          <div className="md:hidden border-t border-border py-3 space-y-1">
-            {navLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="block px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            {/* Post */}
+            <Link
+              to={isAuthenticated ? "/create-listing" : "/login"}
+              className={`flex flex-col items-center justify-center px-2 sm:px-4 py-1 rounded-lg text-xs font-medium transition-colors gap-0.5 ${
+                isActive("/create-listing")
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              }`}
+              data-ocid="nav.link"
+            >
+              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
+                <Plus className="w-4 h-4 text-white" />
+              </div>
+              <span>Post</span>
+            </Link>
+
+            {/* Profile / Sign In */}
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => router.navigate({ to: "/dashboard" })}
+                className={`flex flex-col items-center justify-center px-2 sm:px-4 py-1 rounded-lg text-xs font-medium transition-colors gap-0.5 ${
+                  isActive("/dashboard")
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+                data-ocid="nav.button"
               >
-                {link.label}
-              </a>
-            ))}
-            <div className="pt-3 flex flex-col gap-2">
-              {isAuthenticated ? (
-                <>
-                  <Link to="/create-listing">
-                    <Button className="w-full bg-primary text-white" size="sm">
-                      Post Property
-                    </Button>
-                  </Link>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="w-full"
-                  >
-                    Logout
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Link to="/create-listing">
-                    <Button className="w-full bg-primary text-white" size="sm">
-                      Post Property
-                    </Button>
-                  </Link>
-                  <Link to="/login">
-                    <Button variant="outline" size="sm" className="w-full">
-                      Sign In / Register
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+                <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-primary text-xs font-bold">
+                    {profile?.name?.[0]?.toUpperCase() ?? "U"}
+                  </span>
+                </div>
+                <span>Profile</span>
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className={`flex flex-col items-center justify-center px-2 sm:px-4 py-1 rounded-lg text-xs font-medium transition-colors gap-0.5 ${
+                  isActive("/login")
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
+                data-ocid="nav.link"
+              >
+                <User
+                  className={`w-5 h-5 ${isActive("/login") ? "fill-primary/20 stroke-primary" : ""}`}
+                />
+                <span>Sign In</span>
+              </Link>
+            )}
+
+            {/* Logout for desktop - only when authenticated */}
+            {isAuthenticated && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="hidden sm:flex flex-col items-center justify-center px-3 py-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors gap-0.5"
+              >
+                <span className="text-xs">Logout</span>
+              </button>
+            )}
+          </nav>
+        </div>
       </div>
     </header>
   );

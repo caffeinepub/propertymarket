@@ -1,8 +1,10 @@
-import { useEffect } from "react";
+import { MessageCircle, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function OmniDimWidget() {
+  const [chatOpen, setChatOpen] = useState(false);
+
   useEffect(() => {
-    // Load the script
     if (!document.getElementById("omnidimension-web-widget")) {
       const script = document.createElement("script");
       script.id = "omnidimension-web-widget";
@@ -12,7 +14,7 @@ export default function OmniDimWidget() {
       document.body.appendChild(script);
     }
 
-    // Hide the default launcher button completely
+    // Hide default launcher
     const style = document.createElement("style");
     style.id = "omnidim-hide-launcher";
     style.innerHTML = `
@@ -33,7 +35,9 @@ export default function OmniDimWidget() {
         display: none !important;
       }
     `;
-    document.head.appendChild(style);
+    if (!document.getElementById("omnidim-hide-launcher")) {
+      document.head.appendChild(style);
+    }
 
     const hideDefault = () => {
       const selectors = [
@@ -71,6 +75,78 @@ export default function OmniDimWidget() {
     };
   }, []);
 
-  // No visible button -- it's now in the Navbar 3-dot menu
-  return null;
+  const handleToggle = () => {
+    const newState = !chatOpen;
+    setChatOpen(newState);
+    const win = window as unknown as Record<string, unknown>;
+    if (typeof win.OmniDim === "object" && win.OmniDim !== null) {
+      const omni = win.OmniDim as Record<string, unknown>;
+      if (newState && typeof omni.open === "function") {
+        (omni.open as () => void)();
+        return;
+      }
+      if (!newState && typeof omni.close === "function") {
+        (omni.close as () => void)();
+        return;
+      }
+    }
+    const iframe = document.querySelector(
+      "iframe[src*='omnidim.io']",
+    ) as HTMLIFrameElement | null;
+    if (iframe) {
+      iframe.style.setProperty(
+        "display",
+        newState ? "block" : "none",
+        "important",
+      );
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      aria-label="OmniDimension Agent"
+      style={{
+        position: "fixed",
+        bottom: "80px",
+        right: "16px",
+        zIndex: 9999,
+        borderRadius: "24px",
+        background: "#25d366",
+        border: "none",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "8px",
+        padding: "10px 16px",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.25)",
+        transition: "transform 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.transform = "scale(1.05)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLButtonElement).style.transform = "scale(1)";
+      }}
+    >
+      {chatOpen ? (
+        <X size={16} color="white" />
+      ) : (
+        <MessageCircle size={18} color="white" fill="white" />
+      )}
+      <span
+        style={{
+          color: "white",
+          fontWeight: 600,
+          fontSize: "13px",
+          letterSpacing: "0.3px",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {chatOpen ? "Band Karo" : "OmniDimension Agent"}
+      </span>
+    </button>
+  );
 }

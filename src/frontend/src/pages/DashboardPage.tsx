@@ -49,7 +49,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { PropertyListing } from "../backend";
-import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
@@ -367,7 +366,7 @@ export default function DashboardPage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center" data-ocid="dashboard.error_state">
@@ -383,7 +382,6 @@ export default function DashboardPage() {
           </div>
         </main>
         <Footer />
-        <BottomNav />
       </div>
     );
   }
@@ -407,7 +405,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
       <main className="flex-1">
@@ -627,7 +625,6 @@ export default function DashboardPage() {
       </main>
 
       <Footer />
-      <BottomNav />
 
       {/* Edit Modal */}
       {editingListing && (

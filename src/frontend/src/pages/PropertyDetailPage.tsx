@@ -21,7 +21,6 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import { loadConfig } from "../config";
@@ -284,7 +283,7 @@ export default function PropertyDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <main className="flex-1 max-w-4xl mx-auto px-4 py-10 w-full">
           <Skeleton className="h-8 w-32 mb-6" />
@@ -292,14 +291,13 @@ export default function PropertyDetailPage() {
           <Skeleton className="h-48 rounded-xl" />
         </main>
         <Footer />
-        <BottomNav />
       </div>
     );
   }
 
   if (!listing) {
     return (
-      <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+      <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center" data-ocid="property.error_state">
@@ -310,7 +308,6 @@ export default function PropertyDetailPage() {
           </div>
         </main>
         <Footer />
-        <BottomNav />
       </div>
     );
   }
@@ -321,7 +318,7 @@ export default function PropertyDetailPage() {
   const whatsappUrl = `https://wa.me/?text=${whatsappText}`;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
       <main className="flex-1">
@@ -471,7 +468,6 @@ export default function PropertyDetailPage() {
       </main>
 
       <Footer />
-      <BottomNav />
 
       <ChatDrawer
         open={chatOpen}

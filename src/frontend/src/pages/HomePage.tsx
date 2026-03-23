@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import BottomNav from "../components/BottomNav";
 import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import PropertyCard from "../components/PropertyCard";
@@ -172,7 +171,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col pb-16 md:pb-0">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
       <main className="flex-1">
@@ -551,7 +550,6 @@ export default function HomePage() {
       </main>
 
       <Footer />
-      <BottomNav onSearchClick={handleSearchScrollFocus} />
     </div>
   );
 }
