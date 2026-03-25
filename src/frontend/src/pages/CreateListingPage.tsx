@@ -310,18 +310,11 @@ export default function CreateListingPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Drop zone */}
-                  <div
-                    tabIndex={0}
-                    role="button"
-                    className="border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer"
+                  <button
+                    type="button"
+                    className="w-full border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer"
                     data-ocid="create.dropzone"
                     onClick={() => fileInputRef.current?.click()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        fileInputRef.current?.click();
-                      }
-                    }}
                   >
                     <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
                     <p className="text-sm font-medium text-foreground">
@@ -331,20 +324,10 @@ export default function CreateListingPage() {
                       JPG, PNG, MP4, MOV supported — floor plan, exterior,
                       interior
                     </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="mt-3"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      data-ocid="create.upload_button"
-                    >
-                      <Upload className="w-3.5 h-3.5 mr-2" />
+                    <span className="inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 text-sm border border-border rounded-md bg-background hover:bg-accent transition-colors">
+                      <Upload className="w-3.5 h-3.5" />
                       Choose Files
-                    </Button>
+                    </span>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -353,7 +336,7 @@ export default function CreateListingPage() {
                       className="hidden"
                       onChange={handleFileSelect}
                     />
-                  </div>
+                  </button>
 
                   {/* Cover selector gallery */}
                   {mediaFiles.length > 0 && (
@@ -374,11 +357,10 @@ export default function CreateListingPage() {
                           const isVideo = media.file.type.startsWith("video/");
                           const isCover = i === coverIndex;
                           return (
-                            <div
+                            <button
                               key={`${media.file.name}-${i}`}
-                              tabIndex={0}
-                              role="button"
-                              className="relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200"
+                              type="button"
+                              className="relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 text-left"
                               style={{
                                 borderColor: isCover
                                   ? "hsl(var(--primary))"
@@ -388,12 +370,7 @@ export default function CreateListingPage() {
                                   : "none",
                               }}
                               onClick={() => setCoverIndex(i)}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  setCoverIndex(i);
-                                }
-                              }}
+                              data-ocid={`create.toggle.${i + 1}`}
                             >
                               {/* Thumbnail */}
                               <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
@@ -453,7 +430,7 @@ export default function CreateListingPage() {
                               >
                                 <X className="w-3 h-3" />
                               </button>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>

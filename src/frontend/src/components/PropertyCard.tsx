@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { HttpAgent } from "@icp-sdk/core/agent";
 import { Link } from "@tanstack/react-router";
-import { Hash, Heart, MapPin, MessageCircle } from "lucide-react";
+import { Hash, Heart, MapPin, MessageCircle, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PropertyListing } from "../backend";
 import { loadConfig } from "../config";
@@ -30,6 +30,18 @@ function getPlaceholderImage(propertyType: string): string {
   return PLACEHOLDER_IMAGES[key] ?? PLACEHOLDER_IMAGES.house;
 }
 
+async function buildStorageClient() {
+  const config = await loadConfig();
+  const agent = new HttpAgent({ host: config.backend_host });
+  return new StorageClient(
+    config.bucket_name,
+    config.storage_gateway_url,
+    config.backend_canister_id,
+    config.project_id,
+    agent,
+  );
+}
+
 function MediaThumbnail({
   mediaId,
   propertyType,
@@ -38,27 +50,45 @@ function MediaThumbnail({
   const { type, hash } = parseMediaId(mediaId);
 
   useEffect(() => {
-    if (type === "image") {
-      loadConfig()
-        .then(async (config) => {
-          const agent = new HttpAgent({ host: config.backend_host });
-          const client = new StorageClient(
-            config.bucket_name,
-            config.storage_gateway_url,
-            config.backend_canister_id,
-            config.project_id,
-            agent,
-          );
-          const directUrl = await client.getDirectURL(hash);
-          setUrl(directUrl);
-        })
-        .catch(() => {});
-    }
-  }, [hash, type]);
+    let objectUrl: string | null = null;
+    buildStorageClient()
+      .then(async (client) => {
+        const directUrl = await client.getDirectURL(hash);
+        setUrl(directUrl);
+        objectUrl = directUrl;
+      })
+      .catch(() => {});
+    return () => {
+      if (objectUrl?.startsWith("blob:")) URL.revokeObjectURL(objectUrl);
+    };
+  }, [hash]);
 
   const fallback = getPlaceholderImage(propertyType);
-  const src = url ?? fallback;
 
+  if (type === "video") {
+    if (!url) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-gray-900">
+          <div className="flex flex-col items-center gap-2 text-white/70">
+            <Play className="w-10 h-10" />
+            <span className="text-xs">Loading video...</span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <video
+        src={url}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="w-full h-full object-cover"
+      />
+    );
+  }
+
+  const src = url ?? fallback;
   return (
     <img
       src={src}
@@ -84,8 +114,11 @@ export default function PropertyCard({
   isSaved,
   onSaveToggle,
 }: PropertyCardProps) {
+  // Prefer video as cover if present, then image, then null
+  const videoMediaId = listing.mediaIds.find((id) => id.startsWith("video:"));
   const imageMediaId = listing.mediaIds.find((id) => id.startsWith("image:"));
-  const hasMedia = !!imageMediaId;
+  const coverMediaId = videoMediaId ?? imageMediaId;
+  const hasMedia = !!coverMediaId;
 
   const whatsappText = encodeURIComponent(
     `I'm interested in your property: ${listing.title} - Listed at \u20B9${Number(listing.price).toLocaleString("en-IN")}. Please share more details.`,
@@ -97,11 +130,11 @@ export default function PropertyCard({
       className="group overflow-hidden border border-border hover:shadow-card transition-all duration-300 hover:-translate-y-1 bg-card"
       data-ocid={`listing.item.${index}`}
     >
-      {/* Image */}
+      {/* Image / Video */}
       <div className="relative h-52 overflow-hidden bg-muted">
         {hasMedia ? (
           <MediaThumbnail
-            mediaId={imageMediaId!}
+            mediaId={coverMediaId!}
             propertyType={listing.propertyType}
           />
         ) : (
@@ -126,9 +159,15 @@ export default function PropertyCard({
           <Hash className="w-3 h-3" />
           {listing.id.toString()}
         </div>
+
+        {/* Save/Heart button */}
         <button
           type="button"
-          className="absolute bottom-3 right-3 rounded-full bg-white/80 backdrop-blur p-1.5 shadow hover:scale-110 transition-transform"
+          className={`absolute bottom-3 right-3 rounded-full p-2 shadow-lg transition-all duration-200 ${
+            isSaved
+              ? "bg-red-500 hover:bg-red-600 scale-110"
+              : "bg-white/80 backdrop-blur hover:scale-110"
+          }`}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -138,7 +177,9 @@ export default function PropertyCard({
           aria-label={isSaved ? "Unsave property" : "Save property"}
         >
           <Heart
-            className={`w-4 h-4 transition-colors ${isSaved ? "fill-red-500 text-red-500" : "text-gray-500"}`}
+            className={`w-5 h-5 transition-all ${
+              isSaved ? "fill-white text-white" : "text-gray-500"
+            }`}
           />
         </button>
       </div>
