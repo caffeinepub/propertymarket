@@ -231,3 +231,16 @@ export function useUnsaveListing() {
     },
   });
 }
+
+export function useGetUserProfile(principalId: string | undefined) {
+  const { actor, isFetching } = useActor();
+  return useQuery<UserProfile | null>({
+    queryKey: ["userProfile", principalId],
+    queryFn: async () => {
+      if (!actor || !principalId) return null;
+      const { Principal } = await import("@icp-sdk/core/principal");
+      return actor.getUserProfile(Principal.fromText(principalId));
+    },
+    enabled: !!actor && !isFetching && !!principalId,
+  });
+}

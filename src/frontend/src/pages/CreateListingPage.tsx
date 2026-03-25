@@ -3,14 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Link, useRouter } from "@tanstack/react-router";
 import {
   CheckCircle2,
@@ -45,10 +37,7 @@ export default function CreateListingPage() {
   const createListing = useCreateListing();
   const { uploadFiles, uploading, progress } = useStorageUpload();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [propertyType, setPropertyType] = useState("");
   const [location, setLocation] = useState("");
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [coverIndex, setCoverIndex] = useState<number>(0);
@@ -58,7 +47,6 @@ export default function CreateListingPage() {
   const mediaFilesRef = useRef(mediaFiles);
   mediaFilesRef.current = mediaFiles;
 
-  // Cleanup object URLs on unmount only; uses ref to avoid stale closure
   useEffect(() => {
     return () => {
       for (const m of mediaFilesRef.current) {
@@ -97,11 +85,9 @@ export default function CreateListingPage() {
       const updated = [...prev, ...newItems];
       return updated;
     });
-    // Auto-set cover to first item if none selected yet
     if (mediaFiles.length === 0 && newItems.length > 0) {
       setCoverIndex(0);
     }
-    // reset input so same file can be re-selected
     e.target.value = "";
   };
 
@@ -120,13 +106,7 @@ export default function CreateListingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !title.trim() ||
-      !description.trim() ||
-      !price ||
-      !propertyType ||
-      !location.trim()
-    ) {
+    if (!price || !location.trim()) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -134,7 +114,6 @@ export default function CreateListingPage() {
     try {
       let mediaIds: string[] = [];
       if (mediaFiles.length > 0) {
-        // Reorder so cover is first
         const orderedFiles = [
           mediaFiles[coverIndex],
           ...mediaFiles.filter((_, i) => i !== coverIndex),
@@ -151,10 +130,10 @@ export default function CreateListingPage() {
 
       await createListing.mutateAsync({
         id: 0n,
-        title: title.trim(),
-        description: description.trim(),
+        title: location.trim(),
+        description: "",
         price: BigInt(Math.round(priceNum)),
-        propertyType,
+        propertyType: "",
         location: location.trim(),
         mediaIds,
         ownerEmail: profile?.email ?? "",
@@ -216,57 +195,17 @@ export default function CreateListingPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">
-                      Listing Title <span className="text-destructive">*</span>
+                    <Label htmlFor="price">
+                      Price (INR ₹) <span className="text-destructive">*</span>
                     </Label>
                     <Input
-                      id="title"
-                      placeholder="e.g. 3 BHK Flat in Bandra, Mumbai"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      id="price"
+                      placeholder="e.g. 5000000"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
                       required
                       data-ocid="create.input"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="type">
-                        Property Type{" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Select
-                        value={propertyType}
-                        onValueChange={setPropertyType}
-                        required
-                      >
-                        <SelectTrigger id="type" data-ocid="create.select">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="house">House</SelectItem>
-                          <SelectItem value="plot">Plot</SelectItem>
-                          <SelectItem value="apartment">Apartment</SelectItem>
-                          <SelectItem value="townhouse">Townhouse</SelectItem>
-                          <SelectItem value="commercial">Commercial</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="price">
-                        Price (INR ₹){" "}
-                        <span className="text-destructive">*</span>
-                      </Label>
-                      <Input
-                        id="price"
-                        placeholder="e.g. 5000000"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        required
-                        data-ocid="create.input"
-                      />
-                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -283,21 +222,6 @@ export default function CreateListingPage() {
                       data-ocid="create.input"
                     />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">
-                      Description <span className="text-destructive">*</span>
-                    </Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Describe your property — features, surroundings, nearby amenities..."
-                      rows={5}
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      required
-                      data-ocid="create.textarea"
-                    />
-                  </div>
                 </CardContent>
               </Card>
 
@@ -309,7 +233,6 @@ export default function CreateListingPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Drop zone */}
                   <button
                     type="button"
                     className="w-full border-2 border-dashed border-border rounded-xl p-8 text-center hover:border-primary transition-colors cursor-pointer"
@@ -338,7 +261,6 @@ export default function CreateListingPage() {
                     />
                   </button>
 
-                  {/* Cover selector gallery */}
                   {mediaFiles.length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
@@ -372,7 +294,6 @@ export default function CreateListingPage() {
                               onClick={() => setCoverIndex(i)}
                               data-ocid={`create.toggle.${i + 1}`}
                             >
-                              {/* Thumbnail */}
                               <div className="aspect-square bg-muted flex items-center justify-center overflow-hidden">
                                 {isVideo ? (
                                   <video
@@ -390,7 +311,6 @@ export default function CreateListingPage() {
                                 )}
                               </div>
 
-                              {/* Cover badge */}
                               {isCover && (
                                 <div className="absolute top-1 left-1">
                                   <span className="inline-flex items-center gap-0.5 bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -400,7 +320,6 @@ export default function CreateListingPage() {
                                 </div>
                               )}
 
-                              {/* Video indicator */}
                               {isVideo && (
                                 <div className="absolute bottom-1 right-1">
                                   <span className="inline-flex items-center gap-0.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full">
@@ -410,7 +329,6 @@ export default function CreateListingPage() {
                                 </div>
                               )}
 
-                              {/* Hover overlay with select hint */}
                               {!isCover && (
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <span className="text-white text-[10px] font-semibold bg-black/50 px-2 py-1 rounded-full">
@@ -419,7 +337,6 @@ export default function CreateListingPage() {
                                 </div>
                               )}
 
-                              {/* Remove button */}
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -446,7 +363,6 @@ export default function CreateListingPage() {
                     </div>
                   )}
 
-                  {/* Upload progress */}
                   {uploading && (
                     <div className="space-y-2" data-ocid="create.loading_state">
                       <div className="flex justify-between text-xs text-muted-foreground">
@@ -459,7 +375,6 @@ export default function CreateListingPage() {
                 </CardContent>
               </Card>
 
-              {/* Submit */}
               <div className="flex gap-3">
                 <Link to="/dashboard" className="flex-1">
                   <Button

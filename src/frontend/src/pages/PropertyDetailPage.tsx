@@ -14,7 +14,6 @@ import {
   Heart,
   MapPin,
   MessageCircle,
-  Phone,
   Send,
   Share2,
   X,
@@ -29,6 +28,7 @@ import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useGetListing,
   useGetSavedListings,
+  useGetUserProfile,
   useSaveListing,
   useSubmitInquiry,
   useUnsaveListing,
@@ -100,13 +100,7 @@ interface ChatDrawerProps {
   listingId: bigint;
 }
 
-function ChatDrawer({
-  open,
-  onClose,
-  listingTitle,
-  ownerEmail,
-  listingId,
-}: ChatDrawerProps) {
+function ChatDrawer({ open, onClose, listingId }: ChatDrawerProps) {
   const submitInquiry = useSubmitInquiry();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [name, setName] = useState("");
@@ -187,8 +181,12 @@ function ChatDrawer({
                 <X className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm truncate">{listingTitle}</p>
-                <p className="text-xs text-white/70 truncate">{ownerEmail}</p>
+                <p className="font-semibold text-sm truncate">
+                  Prem Bhati - PropertyMarket Owner
+                </p>
+                <p className="text-xs text-white/70 truncate">
+                  prembhati04444@gmail.com
+                </p>
               </div>
             </div>
 
@@ -232,7 +230,7 @@ function ChatDrawer({
               {messages.length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-xs text-gray-500">
-                    Send a message to the owner about this property
+                    Send a message to Prem Bhati about this property
                   </p>
                 </div>
               )}
@@ -288,6 +286,8 @@ export default function PropertyDetailPage() {
   const listingId = BigInt(id);
   const { data: listing, isLoading } = useGetListing(listingId);
   const { data: savedListings } = useGetSavedListings();
+  const ownerPrincipalId = listing?.ownerId?.toString();
+  const { data: ownerProfile } = useGetUserProfile(ownerPrincipalId);
   const saveListing = useSaveListing();
   const unsaveListing = useUnsaveListing();
   const { identity } = useInternetIdentity();
@@ -340,11 +340,6 @@ export default function PropertyDetailPage() {
       </div>
     );
   }
-
-  const whatsappText = encodeURIComponent(
-    `I'm interested in your property: ${listing.title} - Listed at \u20B9${Number(listing.price).toLocaleString("en-IN")}. Please share more details.`,
-  );
-  const whatsappUrl = `https://wa.me/?text=${whatsappText}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -436,7 +431,7 @@ export default function PropertyDetailPage() {
                   Listed by
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  {listing.ownerEmail}
+                  {ownerProfile?.name ?? listing.ownerEmail}
                 </p>
               </div>
             </div>
@@ -457,24 +452,8 @@ export default function PropertyDetailPage() {
                   data-ocid="property.open_modal_button"
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
-                  Chat with Seller
+                  Contact Owner
                 </Button>
-
-                {/* WhatsApp Button */}
-                <a
-                  href={whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-ocid="property.button"
-                >
-                  <Button
-                    className="w-full text-white"
-                    style={{ backgroundColor: "#25D366" }}
-                  >
-                    <Phone className="w-4 h-4 mr-2" />
-                    WhatsApp
-                  </Button>
-                </a>
 
                 <Button
                   variant="outline"
@@ -513,7 +492,7 @@ export default function PropertyDetailPage() {
         open={chatOpen}
         onClose={() => setChatOpen(false)}
         listingTitle={listing.title}
-        ownerEmail={listing.ownerEmail}
+        ownerEmail={ownerProfile?.name ?? listing.ownerEmail}
         listingId={listing.id}
       />
     </div>

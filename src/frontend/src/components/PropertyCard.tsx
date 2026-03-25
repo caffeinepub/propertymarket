@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { HttpAgent } from "@icp-sdk/core/agent";
 import { Link } from "@tanstack/react-router";
-import { Hash, Heart, MapPin, MessageCircle, Play } from "lucide-react";
+import { Hash, Heart, MapPin, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { PropertyListing } from "../backend";
 import { loadConfig } from "../config";
@@ -120,11 +120,6 @@ export default function PropertyCard({
   const coverMediaId = videoMediaId ?? imageMediaId;
   const hasMedia = !!coverMediaId;
 
-  const whatsappText = encodeURIComponent(
-    `I'm interested in your property: ${listing.title} - Listed at \u20B9${Number(listing.price).toLocaleString("en-IN")}. Please share more details.`,
-  );
-  const whatsappUrl = `https://wa.me/?text=${whatsappText}`;
-
   return (
     <Card
       className="group overflow-hidden border border-border hover:shadow-card transition-all duration-300 hover:-translate-y-1 bg-card"
@@ -214,21 +209,6 @@ export default function PropertyCard({
               View Details
             </Button>
           </Link>
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-ocid={`listing.button.${index}`}
-          >
-            <Button
-              size="sm"
-              className="shrink-0 text-white"
-              style={{ backgroundColor: "#25D366" }}
-            >
-              <MessageCircle className="w-3.5 h-3.5 mr-1" />
-              WhatsApp
-            </Button>
-          </a>
         </div>
       </CardContent>
     </Card>

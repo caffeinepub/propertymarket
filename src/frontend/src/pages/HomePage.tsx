@@ -1,12 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2,
@@ -118,44 +111,8 @@ const TEAM = [
   },
 ];
 
-const PRICE_RANGES = [
-  { value: "all", label: "Any Price" },
-  { value: "under50l", label: "Under ₹50 Lakh" },
-  { value: "50l-1cr", label: "₹50L – ₹1 Crore" },
-  { value: "1cr-5cr", label: "₹1 Cr – ₹5 Crore" },
-  { value: "above5cr", label: "Above ₹5 Crore" },
-];
-
-const PROPERTY_TYPES = [
-  { value: "all", label: "All Types" },
-  { value: "residential", label: "Residential" },
-  { value: "commercial", label: "Commercial" },
-  { value: "agricultural", label: "Agricultural" },
-  { value: "house", label: "House" },
-  { value: "apartment", label: "Apartment" },
-  { value: "plot", label: "Plot / Land" },
-];
-
-function matchesPriceRange(price: bigint, range: string): boolean {
-  const num = Number(price);
-  switch (range) {
-    case "under50l":
-      return num < 5_000_000;
-    case "50l-1cr":
-      return num >= 5_000_000 && num < 10_000_000;
-    case "1cr-5cr":
-      return num >= 10_000_000 && num < 50_000_000;
-    case "above5cr":
-      return num >= 50_000_000;
-    default:
-      return true;
-  }
-}
-
 export default function HomePage() {
   const [searchLocation, setSearchLocation] = useState("");
-  const [propertyType, setPropertyType] = useState("all");
-  const [priceRange, setPriceRange] = useState("all");
   const searchRef = useRef<HTMLInputElement>(null);
   const searchSectionRef = useRef<HTMLDivElement>(null);
 
@@ -183,14 +140,11 @@ export default function HomePage() {
   const { data: stats } = useGetGlobalStats();
 
   const filteredListings = (listings ?? []).filter((l) => {
-    const matchesLocation =
+    return (
       !searchLocation ||
       l.location.toLowerCase().includes(searchLocation.toLowerCase()) ||
-      l.title.toLowerCase().includes(searchLocation.toLowerCase());
-    const matchesType =
-      propertyType === "all" || l.propertyType.toLowerCase() === propertyType;
-    const matchesPrice = matchesPriceRange(l.price, priceRange);
-    return matchesLocation && matchesType && matchesPrice;
+      l.title.toLowerCase().includes(searchLocation.toLowerCase())
+    );
   });
 
   const handleSearchScrollFocus = () => {
@@ -383,47 +337,11 @@ export default function HomePage() {
                   data-ocid="filter.search_input"
                 />
               </div>
-              <Select value={propertyType} onValueChange={setPropertyType}>
-                <SelectTrigger
-                  className="w-full md:w-48 h-11"
-                  data-ocid="filter.select"
-                >
-                  <SelectValue placeholder="Property Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROPERTY_TYPES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={priceRange} onValueChange={setPriceRange}>
-                <SelectTrigger
-                  className="w-full md:w-48 h-11"
-                  data-ocid="filter.select"
-                >
-                  <SelectValue placeholder="Price Range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRICE_RANGES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>
-                      {r.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {(searchLocation ||
-                propertyType !== "all" ||
-                priceRange !== "all") && (
+              {searchLocation && (
                 <Button
                   variant="outline"
                   className="h-11 shrink-0"
-                  onClick={() => {
-                    setSearchLocation("");
-                    setPropertyType("all");
-                    setPriceRange("all");
-                  }}
+                  onClick={() => setSearchLocation("")}
                   data-ocid="filter.secondary_button"
                 >
                   Clear
