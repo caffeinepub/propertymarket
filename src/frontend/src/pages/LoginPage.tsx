@@ -31,6 +31,8 @@ export default function LoginPage() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [loginName, setLoginName] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
   const [showSetup, setShowSetup] = useState(false);
   const [activeTab, setActiveTab] = useState("register");
 
@@ -55,6 +57,14 @@ export default function LoginPage() {
         toast.error("Login failed. Please try again.");
       }
     }
+  };
+
+  const handleLoginWithDetails = async () => {
+    if (!loginName.trim() || !loginEmail.trim()) {
+      toast.error("Please enter your Name and Gmail address.");
+      return;
+    }
+    await handleLogin();
   };
 
   const handleSaveProfile = async () => {
@@ -323,27 +333,42 @@ export default function LoginPage() {
                   {/* Login tab */}
                   <TabsContent value="login" className="mt-0">
                     <div className="bg-background p-6 space-y-5">
-                      <div
-                        className="rounded-xl p-4 text-sm"
-                        style={{
-                          background: "rgba(13,27,62,0.06)",
-                          border: "1px solid rgba(13,27,62,0.12)",
-                        }}
-                      >
-                        <p
-                          className="font-semibold mb-1"
-                          style={{ color: "#0D1B3E" }}
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="login-name"
+                          className="text-sm font-medium"
                         >
-                          Welcome back! Sign in securely.
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          Use your Internet Identity to access your dashboard
-                          and listings. No password needed.
-                        </p>
+                          Full Name
+                        </Label>
+                        <Input
+                          id="login-name"
+                          placeholder="Prem Bhati"
+                          value={loginName}
+                          onChange={(e) => setLoginName(e.target.value)}
+                          className="h-11"
+                          data-ocid="login.name_input"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="login-email"
+                          className="text-sm font-medium"
+                        >
+                          Gmail Address
+                        </Label>
+                        <Input
+                          id="login-email"
+                          type="email"
+                          placeholder="you@gmail.com"
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          className="h-11"
+                          data-ocid="login.email_input"
+                        />
                       </div>
 
                       <Button
-                        onClick={handleLogin}
+                        onClick={handleLoginWithDetails}
                         disabled={isLoggingIn}
                         className="w-full h-11 font-semibold text-sm"
                         style={{
